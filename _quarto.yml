@@ -12,7 +12,11 @@ website:
     left:
       - text: "9890 Final Project"
         href: index.qmd
-
+    right:
+      - text: "Research Reports"
+        menu: 
+          - text: "Report 1"
+            href: research_report_1.qmd
 format:
   html:
     theme: lux
