@@ -1,0 +1,70 @@
+/* DataTables Wrapper Styles */
+  .dataTables_wrapper .dataTables_paginate {
+    color: #000; /* Black pagination text */
+  }
+
+.center-image {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+
+table.dataTable {
+  background-color: #222; /* Table background */
+    color: #fff;           /* Table text color */
+    border-color: #444;     /* Table borders */
+}
+
+/* Search Filter Box */
+  .dataTables_filter label {
+    color: #000; /* Black label text */
+  }
+
+.dataTables_filter input {
+  background-color: #f8f9fa; /* Light gray input background */
+    color: #000;               /* Black input text */
+    border: 1px solid #555;    /* Border */
+}
+
+/* "Show X Entries" Dropdown */
+  .dataTables_length label {
+    color: #000; /* Black label text */
+  }
+
+.dataTables_length select {
+  background-color: #fff; /* Dropdown background */
+    color: #000;            /* Dropdown text */
+    border: 1px solid #ccc; /* Border */
+}
+
+.dataTables_length select:focus {
+  outline: none;          /* Remove default focus outline */
+    border-color: #007bff;  /* Focus border color */
+}
+
+/* Dropdown Options */
+  .dataTables_length select option {
+    background-color: #fff; /* Option background */
+      color: #000;            /* Option text */
+  }
+
+/* Pagination Hover States */
+  .dataTables_wrapper .dataTables_paginate .paginate_button {
+    background-color: #f8f9fa; /* Light gray background */
+      color: #000 !important;    /* Black text */
+      border: 1px solid #ccc;    /* Optional border */
+  }
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  background-color: #444; /* Button hover background */
+    color: #fff !important;  /* Button hover text */
+    border: 1px solid #555; /* Optional border */
+}
+
+/* Info Box (e.g., "Showing X to Y of Z entries") */
+  .dataTables_info {
+    color: #000; /* Black for readability */
+  }

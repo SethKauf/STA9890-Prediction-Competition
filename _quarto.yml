@@ -1,0 +1,20 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "9890 ML Prediction Competition"
+  description: "SOME DESCRIPTION"
+  site-url: "https://github.com/SethKauf/STA9890-Prediction-Competition/"
+  navbar:
+    background: primary
+    search: false
+    left:
+      - text: "9890 Final Project"
+        href: index.qmd
+
+format:
+  html:
+    theme: lux
+    toc: false
+    self-contained: true

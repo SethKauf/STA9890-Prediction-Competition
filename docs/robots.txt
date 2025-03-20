@@ -1,0 +1,1 @@
+Sitemap: https://github.com/SethKauf/STA9890-Prediction-Competition/sitemap.xml
