@@ -7,7 +7,7 @@ jyml:
 
 # 1. Introduction
 
-Research report 1 covers the Bias-Variance Trade off in a Linear Data Generating Process (DGP) and the BLUE-ness of Ordinary Least Squares (OLS) Regression. This will include the theoretical background, computation of the gradient descent and weight decay, and bias and variance under both a linear and non-linear DGP. Some basic statistical background is assumed for this report, e.g.: I won’t delve into detail on $Y=f(x)+\epsilon$, which will be treated as common knowledge. I will occasionally add snippets of code or code outputs; the full code breakdown can be found at the link above.
+Research Report 1 covers the Bias-Variance Trade off in a Linear Data Generating Process (DGP) and the BLUE-ness of Ordinary Least Squares (OLS) Regression. This will include the theoretical background, computation of the gradient descent and weight decay, and bias and variance under both a linear and non-linear DGP. Some basic statistical background is assumed for this report, e.g.: I won’t delve into detail on $Y=f(x)+\epsilon$, which will be treated as common knowledge. I will occasionally add snippets of code or code outputs; the full code breakdown can be found at the link above.
 
 # 2. Theoretical Background
 
