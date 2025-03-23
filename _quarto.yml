@@ -4,7 +4,7 @@ project:
 
 website:
   title: "9890 ML Prediction Competition"
-  description: "SOME DESCRIPTION"
+  description: "Website for 9890's Prediction Competition as well as Research Reports throughout the semester."
   site-url: "https://github.com/SethKauf/STA9890-Prediction-Competition/"
   navbar:
     background: primary
@@ -15,8 +15,10 @@ website:
     right:
       - text: "Research Reports"
         menu: 
-          - text: "Report 1"
-            href: research_report_1.qmd
+          - text: "Bias and Variance Tradeoff and BLUE (Report 1)"
+            href: Research_Report_1.qmd
+          - text: "Ensemble Learning Techniques for Fair Classification (Report 2)"
+            href: Research_Report_2.qmd
 format:
   html:
     theme: lux

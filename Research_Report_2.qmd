@@ -1,0 +1,8 @@
+---
+title: "Research Report 2"
+format: html
+jyml:
+---
+
+# STA 9890 – Research Report 2
+Research Report 2 focuses on Ensemble Learning Techniques for Fair Classification.
