@@ -1,10 +1,9 @@
 ---
-title: "Research Report 1"
+title: "Bias and Variance Tradeoff and BLUE"
+subtitle: "Research Report 1: STA 9890"
 format: html
 jyml:
 ---
-# STA 9890 – Research Report 1
-
 # 1. Introduction
 
 Research Report 1 covers the Bias-Variance Trade off in a Linear Data Generating Process (DGP) and the BLUE-ness of Ordinary Least Squares (OLS) Regression. This will include the theoretical background, computation of the gradient descent and weight decay, and bias and variance under both a linear and non-linear DGP. Some basic statistical background is assumed for this report, e.g.: I won’t delve into detail on $Y=f(x)+\epsilon$, which will be treated as common knowledge. I will occasionally add snippets of code or code outputs; the full code breakdown can be found at the link above.
@@ -14,7 +13,9 @@ Research Report 1 covers the Bias-Variance Trade off in a Linear Data Generating
 ## 2.1 Bias and Variance
 In modeling, Bias and Variance each play an important role in building a usable model that can predict some outcome $y$. Both terms combined give us a general error term which in turn can be used to tell us how good a model actually is.
 
-![Bias and Variance Tradeoff via Wikipedia]('/images/rr1/bias_variance_tradeoff.png')
+<div class="center-image" style="text-align: center;">
+![Bias and Variance Tradeoff via Wikipedia](images/rr1/bias_variance_tradeoff.png)
+</div>
 
 Bias is the “unavoidable model error”, that is it looks at the difference between the ground truth and the predicted values of our model. Variance on the other hand, is the squared difference between the predicted values and the mean of the predicted values.
 
@@ -80,7 +81,7 @@ OLS Regression is a simple linear model that tries to fit a line to the data tha
 A Data Generating Process or DGP is the function of the world that generates data. It is the “ground truth” upon which we try to model the data we do have. Everything discussed until now all is built on-top of this idea that the
 real-world has unknowns and we can only do our best to try and understand and even predict those unknowns.
 
-In the context of OLS Regression, the faults for OLS stem from the fact that it is only a BLUE model-type when the underlying DGP is linear. However, what happens if the real DGP isn’t $y=X\beta+\epsilon$, rather it’s $y=X^2 +\epsilon$ a quadratic equation. This would be model misspecification and would cause issues in trying to estimate parameters our DGP. We can test for whether OLS would be a good model type by looking at various factors. First is an expectation of Homoscedasticity in the data, that is $Var(\epsilon_i|X)=\sigma^2$ or that the residuals (that is, $e=y-\hat y$) have a constant error variance. Running an OLS model on the Credit Card dataset from ISLP   with a predicted variable of y being the credit card balance, it produces the following chart:
+In the context of OLS Regression, the faults for OLS stem from the fact that it is only a BLUE model-type when the underlying DGP is linear. However, what happens if the real DGP isn’t $y=X\beta+\epsilon$, rather it’s $y=X^2 +\epsilon$ a quadratic equation. This would be model misspecification and would cause issues in trying to estimate parameters our DGP. We can test for whether OLS would be a good model type by looking at various factors. First is an expectation of Homoscedasticity in the data, that is **$Var(\epsilon_i|X)=\sigma^2$** or that the residuals (that is, $e=y-\hat y$) have a constant error variance. Running an OLS model on the Credit Card dataset from ISLR with a predicted variable of $y$ being the credit card balance, it produces the following chart:
 
 ```{r install-packages_[0], echo=FALSE, message=FALSE, warning=FALSE}
 #| code-fold: TRUE
@@ -245,6 +246,7 @@ cv_scores <- ols_cve(kf, X, y)
 expected_mse <- round(mean(cv_scores), 4)
 ```
 
+<div class="center-image" style="text-align: center;">
 ```{r homoescedasticity-plot_[5], echo=FALSE, message=TRUE, warning=FALSE}
 residuals <- model$residuals
 
@@ -264,11 +266,13 @@ ggplot(data = NULL, aes(x = y_train_pred, y = residuals)) +
         panel.grid.major = element_line(color = "gray70", linetype = "dotted"),
         panel.grid.minor = element_blank())
 ```
+</div>
 
 If these were more evenly spread out around the mean, this would be a good indication that the OLS model would be the best to use. However, that is not the case here: we see somewhat of a checkmark shape that coalesces in the bottom-left.
 
 To check for the unbiased property in the DGP, we can look towards Endogeneity, or that the errors are not affected by the input $X$ variables: $E[\epsilon|X]=0$. Looking at the input X variables:
 
+<div class="center-image" style="text-align: center;">
 ```{r endogeneity-plot_[6], echo=FALSE, message=TRUE, warning=FALSE}
 # Fit model on full data
 final_model <- lm(card_balance ~ ., data = scaled_data)
@@ -330,7 +334,8 @@ plots <- map2(
 
 wrap_plots(plots, nrow = 1)
 ```
- 
+</div>
+
 The spread is not very even here, though it’s not extremely lopsided. These however show that we likely will have bias in our model if we try to use OLS.
 
 # 3. Computation
@@ -367,7 +372,137 @@ $\beta^{(k+1)}=\beta^k-c\mathcal{L}|_{\beta=\beta^k}=\beta^k-c(-2X^Ty+2X^TX\beta
 
 Plotting it out, it looks like:
   
-Main Python code and output for sample Gradient Descent with Convergence in OLS
+```{r weight-decay-function_[7], echo=TRUE, message=TRUE, warning=FALSE}
+#| code-fold: TRUE
+
+## Simulate Gradient Descent
+
+# Function
+gradient_descent_weight_decay <- function(X, y, alpha = 0.01, lambda_val = 0.1, num_iterations = 1000, tol = 1e-6) {
+  # Add intercept column if not already present
+  if (!all(X[,1] == 1)) {
+    X <- cbind(1, X)
+  }
+  
+  n <- nrow(X)
+  k <- ncol(X)
+  beta <- rep(0, k)
+  loss_history <- numeric()
+  
+  for (i in 1:num_iterations) {
+    # Compute gradient with weight decay
+    gradient <- 2 * (t(X) %*% X %*% beta - t(X) %*% y + lambda_val * beta) / n
+    beta <- (1 - 2 * alpha * lambda_val) * beta - alpha * gradient
+    
+    # Compute loss (MSE + L2 penalty)
+    loss <- mean((y - X %*% beta)^2) + lambda_val * sum(beta^2)
+    loss_history[i] <- loss
+    
+    # Convergence check
+    if (i > 1 && abs(loss_history[i] - loss_history[i - 1]) < tol) {
+      message("Converged at iteration ", i)
+      break
+    }
+  }
+  
+  list(beta = beta, loss_history = loss_history)
+}
+```
+```{r weight-decay-simulation_[7], echo=FALSE, message=TRUE, warning=FALSE}
+# Set simulation params
+set.seed(42)
+n <- 100
+k <- 2
+X <- matrix(runif(n * k), nrow = n)
+X <- cbind(1, X)  # Add intercept
+
+beta_true <- c(2, 3, -1)
+y <- X %*% beta_true + rnorm(n)
+
+# Gradient Descent with Weight Decay
+result <- gradient_descent_weight_decay(X, y, alpha = 0.1, lambda_val = 0.1, num_iterations = 1000)
+```
+
+```{r weight-decay-plot_[8], echo=FALSE, message=TRUE, warning=FALSE}
+beta_wd_gd <- result$beta
+loss_history_wd <- result$loss_history
+
+#cat("Estimated Coefficients (Gradient Descent with Weight Decay):\n")
+#print(round(beta_wd_gd, 4))
+
+df_loss <- data.frame(
+  Iteration = seq_along(loss_history_wd),
+  Loss = loss_history_wd
+)
+
+# --- 1. Find convergence point
+loss_diff <- abs(diff(df_loss$Loss))
+converged_at <- which(loss_diff < 1e-6)[1] + 1  # +1 because diff() shortens length
+
+# --- 2. Find bend point (max second derivative)
+first_deriv <- diff(df_loss$Loss)
+second_deriv <- diff(first_deriv)
+bend_at <- which.max(abs(second_deriv)) + 2  # +2 to align with original index
+
+# Points for annotation
+converge_point <- df_loss[converged_at, ]
+bend_point <- df_loss[bend_at, ]
+
+# Calculate offset positions for label placement
+converge_point <- converge_point %>%
+  mutate(label_x = Iteration - 1,
+         label_y = Loss + 0.25)
+
+bend_point <- bend_point %>%
+  mutate(label_x = Iteration + 15,
+         label_y = Loss)
+
+# Build the plot
+p <- ggplot(df_loss, aes(x = Iteration, y = Loss)) +
+  geom_line(color = "purple", linewidth = 1) +
+  
+  # 🔴 Convergence point and callout
+  geom_segment(data = converge_point, aes(x = Iteration, y = Loss, xend = label_x, yend = label_y),
+               color = "red", linetype = "-") +
+  geom_point(data = converge_point, aes(x = Iteration, y = Loss),
+             color = "red", size = 3) +
+  geom_text(data = converge_point,
+            aes(x = label_x, y = label_y,
+                label = paste0("Converged at:\nIteration ", Iteration)),
+            color = "red", fontface = "bold", size = 4,
+            hjust = 0.5) +
+  
+  # 🟠 Bend point and callout
+  geom_segment(data = bend_point, aes(x = Iteration, y = Loss, xend = label_x, yend = label_y),
+               color = "orange", linetype = "-") +
+  geom_point(data = bend_point, aes(x = Iteration, y = Loss),
+             color = "orange", size = 3) +
+  geom_text(data = bend_point,
+            aes(x = label_x, y = label_y,
+                label = paste0("Natural Stopping Point:\nIteration ", Iteration)),
+            color = "orange", fontface = "bold", size = 4,
+            hjust = 0) +
+  
+  labs(
+    title = "Gradient Descent Convergence with Weight Decay",
+    x = "Iterations",
+    y = "Loss (MSE + L2 Penalty)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.background = element_rect(fill = "gray95", color = NA),
+    panel.background = element_rect(fill = "gray90", color = "gray70"),
+    panel.border = element_rect(color = "gray40", fill = NA),
+    panel.grid.major = element_line(color = "gray70", linetype = "dotted"),
+    panel.grid.minor = element_blank()
+  )
+
+# Make interactive
+ggplotly(p)
+```
+
+[Main code and output for sample Gradient Descent with Convergence in OLS]()
 
 ## 3.3 OLS Weight Decay
 To try and make up for the issues of overfitting and large parameterization, OLS can implement a process known as weight decay. This adds a penalty term to the gradient formula to penalize large parameters and try to keep the model simple. The set-up is similar to before but with an added penalty term:
