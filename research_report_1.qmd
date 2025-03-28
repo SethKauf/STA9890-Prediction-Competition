@@ -45,7 +45,7 @@ $\sigma^2=E[\epsilon^2]$
  
 Where $\epsilon$ is the error term.
 
-The full breakdown of the Expected MSE formula is as follows:
+The full breakdown of the Expected MSE formula is as follows$^1$:
 
 $MSE(\hat \theta)=E_{\theta}[(\hat \theta - \theta)^2]$ $^2$
 
@@ -81,7 +81,7 @@ OLS Regression is a simple linear model that tries to fit a line to the data tha
 A Data Generating Process or DGP is the function of the world that generates data. It is the “ground truth” upon which we try to model the data we do have. Everything discussed until now all is built on-top of this idea that the
 real-world has unknowns and we can only do our best to try and understand and even predict those unknowns.
 
-In the context of OLS Regression, the faults for OLS stem from the fact that it is only a BLUE model-type when the underlying DGP is linear. However, what happens if the real DGP isn’t $y=X\beta+\epsilon$, rather it’s $y=X^2 +\epsilon$ a quadratic equation. This would be model misspecification and would cause issues in trying to estimate parameters our DGP. We can test for whether OLS would be a good model type by looking at various factors. First is an expectation of Homoscedasticity in the data, that is **$Var(\epsilon_i|X)=\sigma^2$** or that the residuals (that is, $e=y-\hat y$) have a constant error variance. Running an OLS model on the Credit Card dataset from ISLR with a predicted variable of $y$ being the credit card balance, it produces the following chart:
+In the context of OLS Regression, the faults for OLS stem from the fact that it is only a BLUE model-type when the underlying DGP is linear. However, what happens if the real DGP isn’t $y=X\beta+\epsilon$, rather it’s $y=X^2 +\epsilon$ a quadratic equation. This would be model misspecification and would cause issues in trying to estimate parameters our DGP. We can test for whether OLS would be a good model type by looking at various factors. First is an expectation of Homoscedasticity in the data, that is **$Var(\epsilon_i|X)=\sigma^2$** or that the residuals (that is, $e=y-\hat y$) have a constant error variance. Running an OLS model on the Credit Card dataset from ISLR$^3$ with a predicted variable of $y$ being the credit card balance, it produces the following chart:
 
 ```{r install-packages_[0], echo=FALSE, message=FALSE, warning=FALSE}
 #| code-fold: TRUE
@@ -92,6 +92,7 @@ if (!require("dplyr")) install.packages("dplyr")
 if (!require("DT")) install.packages("DT")
 if (!require("ggplot2")) install.packages("ggplot2")
 if (!require("ggrepel")) install.packages("ggrepel")
+if (!require("glmnet")) install.packages("glmnet")
 if (!require("glue")) install.packages("glue")
 if (!require("gridExtra")) install.packages("gridExtra")
 if (!require("ISLR")) install.packages("ISLR")
@@ -112,6 +113,7 @@ library(dplyr)
 library(DT)
 library(ggplot2)
 library(ggrepel)
+library(glmnet)
 library(glue)
 library(gridExtra)
 library(ISLR)
@@ -132,7 +134,7 @@ library(tidyverse)
 # Load the Credit dataset
 df <- Credit
 
-# Drop columns: ID and Ethnicity
+# Drop columns
 df <- df |> select(-ID, -Ethnicity)
 
 # Rename columns for better naming convention
@@ -150,7 +152,7 @@ df <- df |>
     card_balance = Balance
   )
 
-# Create boolean columns
+# Create bool columns
 df <- df |>
   mutate(
     gender = ifelse(str_trim(tolower(gender)) == "male", 0, 1),
@@ -184,20 +186,19 @@ scaled_data <- df |>
 set.seed(42)
 train_index <- createDataPartition(scaled_data$card_balance, p = 0.75, list = FALSE)
 
+# train test split
 train_data <- scaled_data[train_index, ]
 test_data <- scaled_data[-train_index, ]
 
-# Separate X and y
-X_train <- train_data %>% select(-card_balance)
+X_train <- train_data |> select(-card_balance)
 y_train <- train_data$card_balance
 
 X_test <- test_data %>% select(-card_balance)
 y_test <- test_data$card_balance
 
-# Add intercept manually (base R lm includes it by default)
+# Add intercept manually
 model <- lm(card_balance ~ ., data = train_data)
 
-# Predict
 y_train_pred <- predict(model, newdata = X_train)
 y_test_pred <- predict(model, newdata = X_test)
 ```
@@ -239,7 +240,7 @@ ols_cve <- function(kf, X, y) {
   return(scores)
 }
 
-X <- scaled_data %>% select(-card_balance)
+X <- scaled_data |> select(-card_balance)
 y <- scaled_data$card_balance
 
 cv_scores <- ols_cve(kf, X, y)
@@ -362,7 +363,9 @@ $\beta = \frac {X^T y} {X^T X}=(X^T X)^{-1} X^T y$
 
 ## 3.2 OLS Gradient
 
-Gradient Descent refers to the process of iteratively fitting models to the gradient of a function is the vector field whose value at point *p* gives the direction and rate of the fastest increase$^4$. In OLS terms, this translates to $\beta^{(k+1)}=\beta^{k}-c\nabla\mathcal{L}|_{\beta=\beta^{(k)}}$ where $\nabla\mathcal{L}$ is the loss function on the gradient.
+Gradient Descent refers to the process of iteratively fitting models to the gradient of a function is the vector field whose value at point *p* gives the direction and rate of the fastest increase$^4$. In OLS terms, this translates to
+
+$\beta^{(k+1)}=\beta^{k}-c\nabla\mathcal{L}|_{\beta=\beta^{(k)}}$ where $\nabla\mathcal{L}$ is the loss function on the gradient.
 
 Gradient Descent keeps going until the parameter and objective each converge, or: $\beta^{(k+1)}\approx\beta^{(k)}$ and $\mathcal{L}(\beta^{(k+1)})\approx\mathcal{L}(\beta^{(k)})$.
 
@@ -372,7 +375,133 @@ $\beta^{(k+1)}=\beta^k-c\mathcal{L}|_{\beta=\beta^k}=\beta^k-c(-2X^Ty+2X^TX\beta
 
 Plotting it out, it looks like:
   
-```{r weight-decay-function_[7], echo=TRUE, message=TRUE, warning=FALSE}
+
+```{r ols-gradient-plot_[7], echo=FALSE, message=TRUE, warning=FALSE}
+
+# Gradient descent function for OLS
+gradient_descent_ols <- function(X, y, alpha = 0.01, num_iterations = 1000, tol = 1e-6) {
+  n <- nrow(X)
+  k <- ncol(X)
+  beta <- rep(0, k)
+  loss_history <- numeric()
+
+  for (i in 1:num_iterations) {
+    gradient <- -2 * t(X) %*% (y - X %*% beta) / n
+    beta <- beta - alpha * gradient
+    loss <- mean((y - X %*% beta)^2)
+    loss_history[i] <- loss
+
+    if (i > 1 && abs(loss_history[i] - loss_history[i - 1]) < tol) {
+      message(paste("Converged at iteration", i))
+      break
+    }
+  }
+
+  return(list(beta = beta, loss_history = loss_history))
+}
+
+# Generate synthetic data
+set.seed(42)
+n <- 100
+X <- matrix(runif(n * 2), nrow = n)
+X <- cbind(1, X)  # Add intercept column
+beta_true <- c(2, 3, -1)
+y <- X %*% beta_true + rnorm(n)
+
+# Run gradient descent
+result <- gradient_descent_ols(X, y, alpha = 0.1, num_iterations = 1000)
+
+# Create loss dataframe for plotting
+df_loss <- data.frame(
+  Iteration = 1:length(result$loss_history),
+  Loss = result$loss_history
+)
+
+# Bend point: where loss first flattens significantly (e.g., 3rd iteration)
+bend_index <- 3
+bend_point <- df_loss[bend_index, ]
+bend_point$label_x <- bend_point$Iteration + 5
+bend_point$label_y <- bend_point$Loss + 0.05
+
+# Converged point: where gradient descent stopped
+converge_index <- nrow(df_loss)
+converge_point <- df_loss[converge_index, ]
+converge_point$label_x <- converge_point$Iteration - 15
+converge_point$label_y <- converge_point$Loss + 0.05
+
+# ggplot with annotations
+p <- ggplot(df_loss, aes(x = Iteration, y = Loss)) +
+  geom_line(color = "darkgreen", linewidth = 1) +
+
+  # Convergence point
+  geom_segment(data = converge_point, aes(x = Iteration, y = Loss, 
+                                          xend = Iteration - 15, yend = Loss + 0.05),
+               color = "darkblue", linewidth = 0.8) +
+  geom_point(data = converge_point, aes(x = Iteration, y = Loss),
+             color = "darkblue", size = 3) +
+  geom_text(data = converge_point,
+            aes(x = Iteration - 15, y = Loss + 0.45,
+                label = paste0("Converged at:\nIteration ", Iteration)),
+            color = "darkblue", fontface = "bold", size = 4, hjust = 0) +
+  
+  # Bend point
+  geom_segment(data = bend_point, aes(x = Iteration, y = Loss,
+                                      xend = Iteration + 5, yend = Loss + 0.05),
+               color = "darkorange", linewidth = 0.8) +
+  geom_point(data = bend_point, aes(x = Iteration, y = Loss),
+             color = "darkorange", size = 3) +
+  geom_text(data = bend_point,
+            aes(x = Iteration + 50, y = Loss + 0.05,
+                label = paste0("Natural Stopping Point:\nIteration ", Iteration)),
+            color = "darkorange", fontface = "bold", size = 4, hjust = 0) +
+
+  labs(
+    title = "Gradient Descent Convergence for OLS",
+    x = "Iterations",
+    y = "Loss (MSE)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.background = element_rect(fill = "gray95", color = NA),
+    panel.background = element_rect(fill = "gray90", color = "gray70"),
+    panel.border = element_rect(color = "gray40", fill = NA),
+    panel.grid.major = element_line(color = "gray70", linetype = "dotted"),
+    panel.grid.minor = element_blank()
+  )
+
+ggplotly(p)
+```
+
+
+\begin{center}
+\textit{\large Main code and output for sample Gradient Descent with Convergence in OLS}
+\end{center}
+
+## 3.3 OLS Weight Decay
+To try and make up for the issues of overfitting and large parameterization, OLS can implement a process known as weight decay. This adds a penalty term to the gradient formula to penalize large parameters and try to keep the model simple. The set-up is similar to before but with an added penalty term:
+
+$\beta^{(k+1)}=\beta^{k}-c\nabla\mathcal{L}|_{\beta=\beta^{(k)}}-\mathcal{w}\beta^{(k)}$
+
+Plugging this into the gradient derivative from the previous section, we get to this step:
+
+$=\frac{\partial}{\partial \beta}[y^Ty-2\beta^TX^Ty+\beta^TX^TX\beta-\mathcal{w}\beta]$
+
+The $y^Ty$ term disappears since it's a constant in this context and the $\beta^T$ terms set to $\frac{\partial}{\partial \beta}[\beta^T]=1$
+
+$\nabla\mathcal{L}=-2X^Ty+2X^TX\beta-\mathcal{w}\beta$
+
+Plugging this back into the original formula for $\beta^{(k+1)}$:
+
+$\beta^{(k+1)}=\beta^{(k)}-c(-2X^Ty+2X^TX\beta-2\mathcal{w}\beta)$
+
+Which finally equals:
+
+$\beta^{(k+1)}=\beta^{(k)}-2c(X^TX\beta^{(k)}-X^Ty-\mathcal{w}I)$
+
+And in simulation-land, we can see this will converge sooner than just regular Gradient Descent from the previous section:
+
+```{r weight-decay-function_[8], echo=TRUE, message=TRUE, warning=FALSE}
 #| code-fold: TRUE
 
 ## Simulate Gradient Descent
@@ -423,7 +552,7 @@ y <- X %*% beta_true + rnorm(n)
 result <- gradient_descent_weight_decay(X, y, alpha = 0.1, lambda_val = 0.1, num_iterations = 1000)
 ```
 
-```{r weight-decay-plot_[8], echo=FALSE, message=TRUE, warning=FALSE}
+```{r weight-decay-plot_[9], echo=FALSE, message=TRUE, warning=FALSE}
 beta_wd_gd <- result$beta
 loss_history_wd <- result$loss_history
 
@@ -435,11 +564,11 @@ df_loss <- data.frame(
   Loss = loss_history_wd
 )
 
-# --- 1. Find convergence point
+# Find convergence point
 loss_diff <- abs(diff(df_loss$Loss))
 converged_at <- which(loss_diff < 1e-6)[1] + 1  # +1 because diff() shortens length
 
-# --- 2. Find bend point (max second derivative)
+# Find bend point (max second derivative)
 first_deriv <- diff(df_loss$Loss)
 second_deriv <- diff(first_deriv)
 bend_at <- which.max(abs(second_deriv)) + 2  # +2 to align with original index
@@ -449,38 +578,38 @@ converge_point <- df_loss[converged_at, ]
 bend_point <- df_loss[bend_at, ]
 
 # Calculate offset positions for label placement
-converge_point <- converge_point %>%
+converge_point <- converge_point |>
   mutate(label_x = Iteration - 1,
          label_y = Loss + 0.25)
 
-bend_point <- bend_point %>%
+bend_point <- bend_point |>
   mutate(label_x = Iteration + 15,
          label_y = Loss)
 
 # Build the plot
 p <- ggplot(df_loss, aes(x = Iteration, y = Loss)) +
-  geom_line(color = "purple", linewidth = 1) +
+  geom_line(color = "darkgreen", linewidth = 1) +
   
-  # 🔴 Convergence point and callout
+  # Convergence point
   geom_segment(data = converge_point, aes(x = Iteration, y = Loss, xend = label_x, yend = label_y),
-               color = "red", linetype = "-") +
+               color = "darkblue", linetype = "-") +
   geom_point(data = converge_point, aes(x = Iteration, y = Loss),
-             color = "red", size = 3) +
+             color = "darkblue", size = 3) +
   geom_text(data = converge_point,
-            aes(x = label_x, y = label_y,
+            aes(x = label_x - 10, y = label_y + 0.35,
                 label = paste0("Converged at:\nIteration ", Iteration)),
-            color = "red", fontface = "bold", size = 4,
+            color = "darkblue", fontface = "bold", size = 4,
             hjust = 0.5) +
   
-  # 🟠 Bend point and callout
+  # Bend point
   geom_segment(data = bend_point, aes(x = Iteration, y = Loss, xend = label_x, yend = label_y),
-               color = "orange", linetype = "-") +
+               color = "darkorange", linetype = "-") +
   geom_point(data = bend_point, aes(x = Iteration, y = Loss),
-             color = "orange", size = 3) +
+             color = "darkorange", size = 3) +
   geom_text(data = bend_point,
-            aes(x = label_x, y = label_y,
+            aes(x = label_x + 5, y = label_y + 0.4,
                 label = paste0("Natural Stopping Point:\nIteration ", Iteration)),
-            color = "orange", fontface = "bold", size = 4,
+            color = "darkorange", fontface = "bold", size = 4,
             hjust = 0) +
   
   labs(
@@ -498,62 +627,339 @@ p <- ggplot(df_loss, aes(x = Iteration, y = Loss)) +
     panel.grid.minor = element_blank()
   )
 
-# Make interactive
 ggplotly(p)
 ```
 
-[Main code and output for sample Gradient Descent with Convergence in OLS]()
-
-## 3.3 OLS Weight Decay
-To try and make up for the issues of overfitting and large parameterization, OLS can implement a process known as weight decay. This adds a penalty term to the gradient formula to penalize large parameters and try to keep the model simple. The set-up is similar to before but with an added penalty term:
-
-$\beta^{(k+1)}=\beta^{k}-c\nabla\mathcal{L}|_{\beta=\beta^{(k)}}-\mathcal{w}\beta^{(k)}$
-
-Plugging this into the gradient derivative from the previous section, we get to this step:
-
-$=\frac{\partial}{\partial \beta}[y^Ty-2\beta^TX^Ty+\beta^TX^TX\beta-\mathcal{w}\beta]$
-
-The $y^Ty$ term disappears since it's a constant in this context and the $\beta^T$ terms set to $\frac{\partial}{\partial \beta}[\beta^T]=1$
-
-$\nabla\mathcal{L}=-2X^Ty+2X^TX\beta-\mathcal{w}\beta$
-
-Plugging this back into the original formula for $\beta^{(k+1)}$:
-
-$\beta^{(k+1)}=\beta^{(k)}-c(-2X^Ty+2X^TX\beta-2\mathcal{w}\beta)$
-
-Which finally equals:
-
-$\beta^{(k+1)}=\beta^{(k)}-2c(X^TX\beta^{(k)}-X^Ty-\mathcal{w}I)$
-
-And in simulation-land, we can see this will converge sooner than just regular Gradient Descent from the previous section (which converged at 280, this one at 142):
-  
-Main Python code and output for sample Weight Decay and Gradient Descent with Convergence in OLS
+\begin{center}
+\textit{\large Main code and output for sample Weight Decay and Gradient Descent with Convergence in OLS}
+\end{center}
 
 ## 3.4 Ridge Regression
-Ridge Regression is an l_p-Regression function, specifically l_2. It applies a penalty term to the original OLS parameters, λ, to minimize the effects of large coefficients and overfitting.
-l_2 (β)=|(|y-Xβ|)|^2+λ|(|β|)|^2
+Ridge Regression is an $\ell_p-Regression$ function, specifically $\ell_2$. It applies a penalty term to the original OLS parameters, $\lambda$, to minimize the effects of large coefficients and overfitting.
+
+$\ell_2 (\beta) = ||y-X\beta||^2+\lambda ||\beta||^2$
+
 Breaking this out then deriving it with respect to β:
-l_2 (β)=(y-Xβ)^T (y-Xβ)+λβ^T β=-2X^T y+2X^T X+2λβ
-Setting this equal to 0 and solving for β:
--2X^T y+2X^T Xβ+2λβ=0
-β=(X^T X+λI)^(-1) X^T y
-Deriving the gradient term β^((k+1))=β^k-c∇L|_(β=β^k )=β^k-2c(X^T y+X^T Xβ^k-λI)
-Which is the same form as OLS with weight decay: β^k-2c(X^T y+X^T Xβ^k-wI).
-	Bias and Variance under a Linear DGP
-4.1 Positing a Linear DGP with Monte Carlo
-If we assume a Linear DGP of y=Xβ+ϵ, we can use Monte Carlo simulations to view bias and variance under these conditions.
+
+$\ell_2 (\beta) = (y-X\beta)^T (y-X\beta) + \lambda \beta^T \beta = -2X^T y + 2X^T X + 2\lambda \beta$
+
+Setting this equal to 0 and solving for $\beta$:
+
+
+$-2X^Ty + 2X^T X \beta + 2 \lambda \beta = 0$
+
+Where $\beta = (X^T X \lambda I)^{-1} X^T y$
+
+Deriving the gradient term $\beta^{k+1} = \beta^k - c \nabla L|_{\beta = \beta^k}=\beta^k-2c(X^T y + X^T X \beta^k - \lambda I)$
+
+Which is the same form as OLS with weight decay: $\beta^k - 2c(X^T y + X^T X \beta^k - wI)$
+
+# 4. Bias and Variance under a Linear DGP
+
+## 4.1 Positing a Linear DGP with Monte Carlo
+
+If we assume a Linear DGP of $y=X\beta + \epsilon$, we can use Monte Carlo simulations to view bias and variance under these conditions.
+
+```{r linear-dgp-monte-carlo_[10], echo=TRUE, message=TRUE, warning=FALSE}
+#| code-fold: TRUE
+# Parameters
+num_simulations <- 500
+sample_sizes <- c(50, 100, 200)
+beta_true <- c(5, 2)  # Intercept and slope
+
+# Initialize storage
+results <- data.frame()
+
+# Monte Carlo loop
+for (n in sample_sizes) {
+  beta_estimates <- matrix(NA, nrow = num_simulations, ncol = 2)
+  in_sample_mse <- numeric(num_simulations)
+  out_sample_mse <- numeric(num_simulations)
   
-Bias and Variance under a Linear DGP with Monte Carlo Simulations
-	Repeating with Ridge Regression
+  for (sim in 1:num_simulations) {
+    # Generate training data
+    X <- runif(n, -3, 3)
+    y <- beta_true[1] + beta_true[2] * X + rnorm(n, 0, 1)
+    X_mat <- cbind(1, X)  # Add intercept
+    
+    # Fit model
+    model <- lm(y ~ X)
+    beta_hat <- coef(model)
+    beta_estimates[sim, ] <- beta_hat
+    
+    # In-sample MSE
+    y_pred <- predict(model)
+    in_sample_mse[sim] <- mean((y - y_pred)^2)
+    
+    # Generate test set
+    X_test <- runif(n, -3, 3)
+    y_test <- beta_true[1] + beta_true[2] * X_test + rnorm(n, 0, 1)
+    test_df <- data.frame(X = X_test)
+    
+    # Out-of-sample MSE
+    y_test_pred <- predict(model, newdata = test_df)
+    out_sample_mse[sim] <- mean((y_test - y_test_pred)^2)
+  }
+  
+  # Compute bias and variance for β1 (slope)
+  beta1_hat <- beta_estimates[, 2]
+  bias_beta1 <- mean(beta1_hat) - beta_true[2]
+  variance_beta1 <- var(beta1_hat)
+  
+  # Store results
+  results <- rbind(results, data.frame(
+    sample_size = n,
+    bias_beta1 = bias_beta1,
+    variance_beta1 = variance_beta1,
+    in_sample_mse = mean(in_sample_mse),
+    out_sample_mse = mean(out_sample_mse)
+  ))
+}
+
+# Plot Bias, Variance, and MSEs
+par(mfrow = c(2, 2))
+
+# Plot Bias
+p1 <- ggplot(results, aes(x = sample_size, y = bias_beta1)) +
+  geom_line(color = "darkred") +
+  geom_point(color = "darkred") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Bias of β1 vs. Sample Size", x = "Sample Size (n)", y = "Bias")
+
+# Plot Variance
+p2 <- ggplot(results, aes(x = sample_size, y = variance_beta1)) +
+  geom_line(color = "darkblue") +
+  geom_point(color = "darkblue") +
+  labs(title = "Variance of β1 vs. Sample Size", x = "Sample Size (n)", y = "Variance")
+
+# In-Sample MSE
+p3 <- ggplot(results, aes(x = sample_size, y = in_sample_mse)) +
+  geom_line(color = "darkgreen") +
+  geom_point(color = "darkgreen") +
+  labs(title = "In-Sample MSE vs. Sample Size", x = "Sample Size (n)", y = "MSE")
+
+# Out-of-Sample MSE
+p4 <- ggplot(results, aes(x = sample_size, y = out_sample_mse)) +
+  geom_line(color = "darkmagenta") +
+  geom_point(color = "darkmagenta") +
+  labs(title = "Out-of-Sample MSE vs. Sample Size", x = "Sample Size (n)", y = "MSE")
+
+# Arrange in 2x2 grid
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+```
+
+\begin{center}
+\textit{\large Bias and Variance under a Linear DGP with Monte Carlo Simulations}
+\end{center}
+
+## 4.2 Repeating with Ridge Regression
+
 Let’s repeat the Monte Carlo simulations using Ridge Regression to see the difference between it and OLS
-   
+
+```{r linear-dgp-monte-carlo-ridge_[11], echo=TRUE, message=TRUE, warning=FALSE}
+#| code-fold: TRUE
+# Set simulation parameters
+num_simulations <- 500
+sample_sizes <- c(50, 100, 200)
+beta_true <- c(5, 2)
+lambda_ridge <- 1.0  # L2 regularization strength
+
+# Storage for results
+ridge_results <- data.frame()
+
+# Loop over sample sizes
+for (n in sample_sizes) {
+  beta_estimates <- matrix(NA, nrow = num_simulations, ncol = 2)
+  in_sample_mse <- numeric(num_simulations)
+  out_sample_mse <- numeric(num_simulations)
+
+  for (sim in 1:num_simulations) {
+    # Generate training data
+    X <- runif(n, -3, 3)
+    y <- beta_true[1] + beta_true[2] * X + rnorm(n)
+    X_mat <- cbind(1, X)  # Add intercept column
+
+    # Fit Ridge regression (glmnet expects matrix input, no intercept term)
+    ridge_model <- glmnet(x = X_mat, y = y, alpha = 0, lambda = lambda_ridge, intercept = FALSE, standardize = FALSE)
+    beta_hat <- as.vector(coef(ridge_model, s = lambda_ridge))[-1]  # drop intercept row
+    beta_estimates[sim, ] <- beta_hat
+
+    # In-sample prediction
+    y_pred <- X_mat %*% beta_hat
+    in_sample_mse[sim] <- mean((y - y_pred)^2)
+
+    # Test set
+    X_test <- runif(n, -3, 3)
+    y_test <- beta_true[1] + beta_true[2] * X_test + rnorm(n)
+    X_test_mat <- cbind(1, X_test)
+
+    # Out-of-sample prediction
+    y_test_pred <- X_test_mat %*% beta_hat
+    out_sample_mse[sim] <- mean((y_test - y_test_pred)^2)
+  }
+
+  # Bias and variance of β1 (slope)
+  beta1_hat <- beta_estimates[, 2]
+  bias_beta1 <- mean(beta1_hat) - beta_true[2]
+  variance_beta1 <- var(beta1_hat)
+
+  # Save results
+  ridge_results <- rbind(ridge_results, data.frame(
+    sample_size = n,
+    bias_beta1 = bias_beta1,
+    variance_beta1 = variance_beta1,
+    in_sample_mse = mean(in_sample_mse),
+    out_sample_mse = mean(out_sample_mse)
+  ))
+}
+
+# Bias
+p1 <- ggplot(ridge_results, aes(x = sample_size, y = bias_beta1)) +
+  geom_line(color = "darkred") +
+  geom_point(color = "darkred") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Bias of β1 vs. Sample Size (Ridge)",
+       x = "Sample Size (n)", y = "Bias")
+
+# Variance
+p2 <- ggplot(ridge_results, aes(x = sample_size, y = variance_beta1)) +
+  geom_line(color = "darkblue") +
+  geom_point(color = "darkblue") +
+  labs(title = "Variance of β1 vs. Sample Size (Ridge)",
+       x = "Sample Size (n)", y = "Variance")
+
+# In-sample MSE
+p3 <- ggplot(ridge_results, aes(x = sample_size, y = in_sample_mse)) +
+  geom_line(color = "darkgreen") +
+  geom_point(color = "darkgreen") +
+  labs(title = "In-Sample MSE vs. Sample Size (Ridge)",
+       x = "Sample Size (n)", y = "MSE")
+
+# Out-of-sample MSE
+p4 <- ggplot(ridge_results, aes(x = sample_size, y = out_sample_mse)) +
+  geom_line(color = "darkmagenta") +
+  geom_point(color = "darkmagenta") +
+  labs(title = "Out-of-Sample MSE vs. Sample Size (Ridge)",
+       x = "Sample Size (n)", y = "MSE")
+
+# Display all four plots in 2x2 layout
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+```
+
 While we can see the bias is always a little worse in Ridge Regression, the variance takes a sharper decline; eventually we end up with a better out-of-sample MSE than we did with OLS.
-	Bias and Variance under non-Linear DGP
-5.1 Monte Carlo Simulation
-Similar to the previous section, here we will look at how bias and variance are affected when the DGP is non-linear, y=X^2 β+ϵ
+
+# 5. Bias and Variance under non-Linear DGP
+
+## 5.1 Monte Carlo Simulation
+
+Similar to the previous section, here we will look at how bias and variance are affected when the DGP is non-linear, $y=X^2 \beta + \epsilon$
+
+```{r linear-dgp-monte-carlo-bias-variance_[12], echo=TRUE, message=TRUE, warning=FALSE}
+#| code-fold: TRUE
+# Parameters
+num_simulations <- 500
+sample_sizes <- c(50, 100, 200)
+lambda_ridge <- 1.0
+beta <- c(5, 2)  # Intercept and quadratic coefficient
+
+# Function to simulate non-linear DGP: y = β0 + β1 * x^2 + ε
+generate_nonlinear_dgp <- function(n, beta = c(5, 2), noise_sd = 1.0) {
+  x <- runif(n, -3, 3)
+  y <- beta[1] + beta[2] * x^2 + rnorm(n, sd = noise_sd)
+  return(list(x = x, y = y))
+}
+
+# Storage for results
+ridge_nonlinear_results <- data.frame()
+
+# Simulation
+for (n in sample_sizes) {
+  beta_estimates <- matrix(NA, nrow = num_simulations, ncol = 2)
+  in_sample_mse <- numeric(num_simulations)
+  out_sample_mse <- numeric(num_simulations)
+
+  for (sim in 1:num_simulations) {
+    # Generate training data
+    train <- generate_nonlinear_dgp(n)
+    x <- train$x
+    y <- train$y
+    X_quad <- cbind(1, x^2)
+
+    # Fit Ridge regression
+    ridge_model <- glmnet(x = X_quad, y = y, alpha = 0, lambda = lambda_ridge,
+                          intercept = FALSE, standardize = FALSE)
+    beta_hat <- as.vector(coef(ridge_model, s = lambda_ridge))[-1]
+    beta_estimates[sim, ] <- beta_hat
+
+    # In-sample MSE
+    y_pred <- X_quad %*% beta_hat
+    in_sample_mse[sim] <- mean((y - y_pred)^2)
+
+    # Test set
+    test <- generate_nonlinear_dgp(n)
+    x_test <- test$x
+    y_test <- test$y
+    X_test_quad <- cbind(1, x_test^2)
+    y_test_pred <- X_test_quad %*% beta_hat
+    out_sample_mse[sim] <- mean((y_test - y_test_pred)^2)
+  }
+
+  # Bias and variance for β1 (quadratic term)
+  beta1_hat <- beta_estimates[, 2]
+  bias_beta1 <- mean(beta1_hat) - beta[2]
+  variance_beta1 <- var(beta1_hat)
+
+  # Store results
+  ridge_nonlinear_results <- rbind(ridge_nonlinear_results, data.frame(
+    sample_size = n,
+    bias_beta1 = bias_beta1,
+    variance_beta1 = variance_beta1,
+    in_sample_mse = mean(in_sample_mse),
+    out_sample_mse = mean(out_sample_mse)
+  ))
+}
+
+# Bias
+p1 <- ggplot(ridge_nonlinear_results, aes(x = sample_size, y = bias_beta1)) +
+  geom_line(color = "darkred") +
+  geom_point(color = "darkred") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Bias of β1 vs. Sample Size (Ridge - Non-Linear)",
+       x = "Sample Size (n)", y = "Bias")
+
+# Variance
+p2 <- ggplot(ridge_nonlinear_results, aes(x = sample_size, y = variance_beta1)) +
+  geom_line(color = "darkblue") +
+  geom_point(color = "darkblue") +
+  labs(title = "Variance of β1 vs. Sample Size (Ridge - Non-Linear)",
+       x = "Sample Size (n)", y = "Variance")
+
+# In-sample MSE
+p3 <- ggplot(ridge_nonlinear_results, aes(x = sample_size, y = in_sample_mse)) +
+  geom_line(color = "darkgreen") +
+  geom_point(color = "darkgreen") +
+  labs(title = "In-Sample MSE vs. Sample Size (Ridge - Non-Linear)",
+       x = "Sample Size (n)", y = "MSE")
+
+# Out-of-sample MSE
+p4 <- ggplot(ridge_nonlinear_results, aes(x = sample_size, y = out_sample_mse)) +
+  geom_line(color = "darkmagenta") +
+  geom_point(color = "darkmagenta") +
+  labs(title = "Out-of-Sample MSE vs. Sample Size (Ridge - Non-Linear)",
+       x = "Sample Size (n)", y = "MSE")
+
+# Display 2x2 grid
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+```
    
 The bias is now nearly constant as seen in the top-left, while the in-and-out of sample errors seem to still follow the trends we saw with the last two.
 
 
-# Footnotes
-$^2$ MSE Wikipedia
+# Citations
+$^1$ [MSE Wikipedia](https://en.wikipedia.org/wiki/Mean_squared_error)
+
+$^2$ [Gauss-Markov Theorem Wikipedia](https://en.wikipedia.org/wiki/Gauss%E2%80%93Markov_theorem)
+
+$^3$ [ISL Credit Card Data](https://rdrr.io/cran/ISLR/man/Credit.html)
+
+$^4$ [Gradient Wikipedia](https://en.wikipedia.org/wiki/Gradient)
