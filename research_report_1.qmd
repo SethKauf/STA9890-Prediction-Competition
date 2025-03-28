@@ -6,7 +6,7 @@ jyml:
 ---
 # 1. Introduction
 
-Research Report 1 covers the Bias-Variance Trade off in a Linear Data Generating Process (DGP) and the BLUE-ness of Ordinary Least Squares (OLS) Regression. This will include the theoretical background, computation of the gradient descent and weight decay, and bias and variance under both a linear and non-linear DGP. Some basic statistical background is assumed for this report, e.g.: I won’t delve into detail on $Y=f(x)+\epsilon$, which will be treated as common knowledge. I will occasionally add snippets of code or code outputs; the full code breakdown can be found at the link above.
+Research Report 1 covers the Bias-Variance Trade off in a Linear Data Generating Process (DGP) and the BLUE-ness of Ordinary Least Squares (OLS) Regression. This will include the theoretical background, computation of the gradient descent and weight decay, and bias and variance under both a linear and non-linear DGP. Some basic statistical background is assumed for this report, e.g.: I won’t delve into detail on $Y=f(x)+\epsilon$, which will be treated as common knowledge.
 
 # 2. Theoretical Background
 
@@ -377,6 +377,7 @@ Plotting it out, it looks like:
   
 
 ```{r ols-gradient-plot_[7], echo=FALSE, message=TRUE, warning=FALSE}
+#| code-fold: TRUE
 
 # Gradient descent function for OLS
 gradient_descent_ols <- function(X, y, alpha = 0.01, num_iterations = 1000, tol = 1e-6) {
@@ -472,11 +473,10 @@ p <- ggplot(df_loss, aes(x = Iteration, y = Loss)) +
 
 ggplotly(p)
 ```
-
-
-\begin{center}
-\textit{\large Main code and output for sample Gradient Descent with Convergence in OLS}
-\end{center}
+<div class="center-image" style="text-align: center;">
+<span style="color:gray; font-size:90%">
+*Sample Gradient Descent with Convergence in OLS*</span>
+</div>
 
 ## 3.3 OLS Weight Decay
 To try and make up for the issues of overfitting and large parameterization, OLS can implement a process known as weight decay. This adds a penalty term to the gradient formula to penalize large parameters and try to keep the model simple. The set-up is similar to before but with an added penalty term:
@@ -629,10 +629,9 @@ p <- ggplot(df_loss, aes(x = Iteration, y = Loss)) +
 
 ggplotly(p)
 ```
-
-\begin{center}
-\textit{\large Main code and output for sample Weight Decay and Gradient Descent with Convergence in OLS}
-\end{center}
+<div class="center-image" style="text-align: center;">
+<span style="color:gray; font-size:90%">*Sample Weight Decay and Gradient Descent with Convergence in OLS*</span>
+</div>
 
 ## 3.4 Ridge Regression
 Ridge Regression is an $\ell_p-Regression$ function, specifically $\ell_2$. It applies a penalty term to the original OLS parameters, $\lambda$, to minimize the effects of large coefficients and overfitting.
@@ -747,10 +746,9 @@ p4 <- ggplot(results, aes(x = sample_size, y = out_sample_mse)) +
 # Arrange in 2x2 grid
 grid.arrange(p1, p2, p3, p4, nrow = 2)
 ```
-
-\begin{center}
-\textit{\large Bias and Variance under a Linear DGP with Monte Carlo Simulations}
-\end{center}
+<div class="center-image" style="text-align: center;">
+<span style="color:gray; font-size:90%">*Bias and Variance under a Linear DGP with Monte Carlo Simulations*</span>
+</div>
 
 ## 4.2 Repeating with Ridge Regression
 
