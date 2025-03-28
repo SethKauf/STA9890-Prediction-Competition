@@ -268,6 +268,10 @@ ggplot(data = NULL, aes(x = y_train_pred, y = residuals)) +
         panel.grid.minor = element_blank())
 ```
 </div>
+<div class="center-image" style="text-align: center;">
+<span style="color:gray; font-size:90%">
+*Homoscedasticity of $\hat y$ from ISL Credit Data Set*</span>
+</div>
 
 If these were more evenly spread out around the mean, this would be a good indication that the OLS model would be the best to use. However, that is not the case here: we see somewhat of a checkmark shape that coalesces in the bottom-left.
 
@@ -335,6 +339,10 @@ plots <- map2(
 
 wrap_plots(plots, nrow = 1)
 ```
+</div>
+<div class="center-image" style="text-align: center;">
+<span style="color:gray; font-size:90%">
+*Endogeneity of feature residuals from ISL Credit Data Set*</span>
 </div>
 
 The spread is not very even here, though it’s not extremely lopsided. These however show that we likely will have bias in our model if we try to use OLS.
@@ -475,7 +483,7 @@ ggplotly(p)
 ```
 <div class="center-image" style="text-align: center;">
 <span style="color:gray; font-size:90%">
-*Sample Gradient Descent with Convergence in OLS*</span>
+*Sample Gradient Descent with convergence in OLS*</span>
 </div>
 
 ## 3.3 OLS Weight Decay
@@ -630,7 +638,7 @@ p <- ggplot(df_loss, aes(x = Iteration, y = Loss)) +
 ggplotly(p)
 ```
 <div class="center-image" style="text-align: center;">
-<span style="color:gray; font-size:90%">*Sample Weight Decay and Gradient Descent with Convergence in OLS*</span>
+<span style="color:gray; font-size:90%">*Sample Weight Decay and Gradient Descent with convergence in OLS*</span>
 </div>
 
 ## 3.4 Ridge Regression
@@ -747,7 +755,7 @@ p4 <- ggplot(results, aes(x = sample_size, y = out_sample_mse)) +
 grid.arrange(p1, p2, p3, p4, nrow = 2)
 ```
 <div class="center-image" style="text-align: center;">
-<span style="color:gray; font-size:90%">*Bias and Variance under a Linear DGP with Monte Carlo Simulations*</span>
+<span style="color:gray; font-size:90%">*Bias and Variance under a Linear DGP with Monte Carlo simulations*</span>
 </div>
 
 ## 4.2 Repeating with Ridge Regression
@@ -843,12 +851,17 @@ p4 <- ggplot(ridge_results, aes(x = sample_size, y = out_sample_mse)) +
 # Display all four plots in 2x2 layout
 grid.arrange(p1, p2, p3, p4, nrow = 2)
 ```
+<div class="center-image" style="text-align: center;">
+<span style="color:gray; font-size:90%">
+*Bias and Variance under a Linear DGP with Monte Carlo simulations using Ridge Regression*</span>
+</div>
+
 
 While we can see the bias is always a little worse in Ridge Regression, the variance takes a sharper decline; eventually we end up with a better out-of-sample MSE than we did with OLS.
 
 # 5. Bias and Variance under non-Linear DGP
 
-## 5.1 Monte Carlo Simulation
+## 5.1 Monte Carlo Simulation for non-Linear DGP
 
 Similar to the previous section, here we will look at how bias and variance are affected when the DGP is non-linear, $y=X^2 \beta + \epsilon$
 
@@ -949,7 +962,11 @@ p4 <- ggplot(ridge_nonlinear_results, aes(x = sample_size, y = out_sample_mse)) 
 # Display 2x2 grid
 grid.arrange(p1, p2, p3, p4, nrow = 2)
 ```
-   
+<div class="center-image" style="text-align: center;">
+<span style="color:gray; font-size:90%">
+*Bias and Variance of non-Linear DGP using Monte Carlo simulations*</span>
+</div>
+
 The bias is now nearly constant as seen in the top-left, while the in-and-out of sample errors seem to still follow the trends we saw with the last two.
 
 
