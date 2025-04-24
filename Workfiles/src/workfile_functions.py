@@ -92,3 +92,9 @@ def count_nulls(df):
     print("-" * 60)
     for col, count, percent in null_counts:
         print(f"{col:<30} {count:>15,} {percent:>11.2f}%")
+
+def collapse_rare_categories(df, col, min_count=100):
+    freq = df[col].value_counts()
+    rare_vals = freq[freq < min_count].index
+    df[col] = df[col].where(~df[col].isin(rare_vals), other='Other')
+    return df
