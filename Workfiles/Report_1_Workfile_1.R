@@ -465,3 +465,10 @@ ggplot(df_loss, aes(x = Iteration, y = Loss)) +
     panel.grid.major = element_line(color = "gray70", linetype = "dotted"),
     panel.grid.minor = element_blank()
   )
+
+
+
+[^ny] Hence, to determine taxes,
+government authorities must undertake an annual *assessment* process. 
+
+[^ny]: Unsurprisingly, New York makes this [more complicated](https://www.tax.ny.gov/pit/property/assess/local/). 
