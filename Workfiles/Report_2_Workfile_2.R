@@ -388,3 +388,29 @@ ggplot(data = ensemble_cm_df, aes(x = Reference, y = Prediction, fill = Freq)) +
     y = "Predicted Label"
   ) +
   theme_minimal()
+
+# Define model names — in same order as used in the ensemble
+model_names <- c(
+  "NaiveBayes", "LDA", "SVM", "DecisionTree",
+  "LogReg_Plain", "LogReg_Ridge", "LogReg_Lasso"
+)
+
+# Extract weights from CVXR solution
+fair_weights <- as.numeric(result$getValue(W))  # shape: [k x 1]
+
+# Create data frame
+weights_df <- tibble(
+  Model = factor(model_names, levels = model_names),
+  Weight = fair_weights
+)
+
+# Plot
+ggplot(weights_df, aes(x = Model, y = Weight)) +
+  geom_bar(stat = "identity", fill = "darkgreen") +
+  theme_minimal() +
+  labs(
+    title = "FairStacks Ensemble Weights",
+    x = NULL,
+    y = "Model Weight"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))

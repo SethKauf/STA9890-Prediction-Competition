@@ -20,7 +20,7 @@ There are other contexts of fairness, such as fairness in pricing, which deals w
 
 ## 2.1 Examples of Unfairness
 
-However, sometimes the simplest approach is not necessarily the best. This quantitative approach to coerce subgroups into equally receiving a positive (meaning the “1” outcome in a model’s predictions versus the “0”).
+Below are two examples of societal unfairness baked into ML Systems.
 
 ### 2.1.1 COMPAS
 
@@ -45,8 +45,9 @@ To research the potential of bias in a social context (and by extent, in a ML Sy
 
 ## 3.1 Target Class
 
-The target class in this dataset is the `READMITTED` column which has three values: No, <30 and >30. This feature asks whether a patient was readmitted following their initial hospital visit within 30 days (early readmission) or after 30 days (general readmission). Its raw data contains 101,766 records with 50 columns (n x p) and a secondary spreadsheet used to connect three `id` columns in the data to an English meaning (ie `admission_type_id = 1` is an `Emergency`).
-This target was turned into two potential target-y classes: readmit_early and readmit_at_all. The former is just the values of <30 while the latter is either <30 or >30. Without any data cleaning or feature engineering, the class imbalance for readmit_early is about 88.8% : 11.2% for 0/1, while readmit_at_all is about 53.9% : 46.1% for 0/1. Although there is value in looking into readmit_early as a target, especially following the data cleaning in the next section, the class imbalance widens and it becomes a virtually untenable target class without any sort of artificial balancing such as the SMOTE method.
+The target class in this dataset is the `READMITTED` column which has three values: `No`, `<30` and `>30`. This feature asks whether a patient was readmitted following their initial hospital visit within 30 days (early readmission) or after 30 days (general readmission). Its raw data contains 101,766 records with 50 columns ($101,766 \space \times \space 50$) and a secondary spreadsheet used to connect three `id` columns in the data to an English meaning (ie `admission_type_id = 1` is an `Emergency`).
+
+This target was turned into two potential target-y classes: `readmit_early` and `readmit_at_all`. The former is just the values of `<30` while the latter is either `<30` or `>30`. Without any data cleaning or feature engineering, the class imbalance for `readmit_early` is about 88.8% : 11.2% for 0 : 1, while `readmit_at_all` is about 53.9% : 46.1% for 0 : 1. Although there is value in looking into `readmit_early` as a target, the class imbalance widens following the data cleaning section and it becomes a virtually untenable target class without any sort of artificial balancing such as the SMOTE method.
 
 As a note: the data cleaning and EDA was done in Python to create the eventual modeling data. The full cleaning and EDA code can be [found on my GitHub](https://github.com/SethKauf/STA9890-Prediction-Competition/blob/r2/Workfiles/Report_2_Workfile.ipynb) if interested.
 
@@ -56,17 +57,17 @@ As a note: the data cleaning and EDA was done in Python to create the eventual m
 
 ## 3.2 Data Cleaning
 
-The first step to dealing with the data was cleaning it. This started by checking for NULLs, which in this dataset was denoted by the presence of “?” in the data. Only 7 of the 50 original features have NULLs. `race`, `diag_1`, `diag_2`, and `diag_3` (diagnoses 1, 2 and 3 respectively) have < 3% of their records as NULL. `payer_code` and `medical_specialty` (insurance provider and medical specialty of the overseeing physician) are about 40% NULL.
+The first step to dealing with the data was cleaning it. This started by checking for NULLs, which in this dataset was denoted by the presence of `?` in the data. Only 7 of the 50 original features have NULLs. `race`, `diag_1`, `diag_2`, and `diag_3` (diagnoses 1, 2 and 3 respectively) have < 3% of their records as NULL. `payer_code` and `medical_specialty` (insurance provider and medical specialty of the overseeing physician) are about 40% `NULL`.
 
 <div class="center-image" style="text-align: center;">
 ![NULL counts represented by "?"](images/rr2/null_count.png)
 </div>
 
-For these 6 columns, I elected to remove all records with the NULL values in any of these columns. This removed about 40% of the data, bringing the total number of records down to 48,140.
+For these 6 columns, I elected to remove all records with the `NULL` values in any of these columns. This removed about 40% of the data, bringing the total number of records down to 48,140.
 
 The 7th column, weight, was comprised of nearly 97% NULL data. Once I accounted for the NULLs in the first 6 columns, only about 3,000 of the 48,140 records actually had a filled value for weight. This is actually extremely unfortunate as weight is both a demographic feature and an especially important feature in something like diabetes. However, there is simply too much data lost by keeping it at the expense of ~45,000 records, while imputation of some sort (ie mean, forward fill, random-fill, etc. imputation) would be too sketchy given the sheer volume of NULL values. Because of this, the `weight` feature has been completely dropped from the model.
 
-Another consideration in the dataset is that some patients are “repeat” patients. Looking at the distribution of these patients, we see most only visit the hospital once, with a median of 1, an upper bound on the IQR of 2, and a mean of ~1.4 visits. With this in mind, any patient whose number appears in the data more than 3 times was removed. Further, because this still means there are some duplicates, when it comes time to split the data, it will be split on `patient_nbr` to avoid patients appearing in both the training and testing data.
+Another consideration in the dataset is that some patients are “repeat” patients. Looking at the distribution of these patients, we see most only visit the hospital once, with a median of 1, an upper bound on the IQR of 2, and a mean of ~1.49 visits. With this in mind, any patient whose number appears in the data more than 3 times was removed. Further, because this still means there are some duplicates, when it comes time to split the data, it will be split on `patient_nbr` to avoid patients appearing in both the training and testing data.
 
 <div class="center-image" style="text-align: center;">
 ![Repeat patient info](images/rr2/repeat_patients_iqr.png)
@@ -89,7 +90,7 @@ The next step was to engineer some features using standard techniques:
  
 * Dummy encoding
 
-  - race $\rightarrow$ race_AfricanAmerican, race_Caucasian…
+  - `race` $\rightarrow$ `race_AfricanAmerican`, `race_Caucasian`…
  
 * Binarizing
 
@@ -570,13 +571,13 @@ Now comparing the regular stack to a FairStack:
 # Response vector
 y_train_ens <- ifelse(test_data$readmit_at_all == 1, 1, -1)
 
-# --------------------------------------------------
+
 # Estimate bias per model (Demographic Parity)
-# --------------------------------------------------
-# Define protected attribute, e.g., race_AfricanAmerican
+
+# protected attribute
 protected_attr <- test_data$race_AfricanAmerican
 
-# Compute demographic disparity per model
+# demographic disparity per model
 get_ddp <- function(preds, protected) {
   mean(preds[protected == 1]) - mean(preds[protected == 0])
 }
@@ -584,9 +585,8 @@ get_ddp <- function(preds, protected) {
 bias_vec <- sapply(ensemble_scaled, get_ddp, protected = protected_attr)
 bias_vec <- matrix(bias_vec, nrow = length(bias_vec), ncol = 1)
 
-# --------------------------------------------------
 # FairStacks Optimization
-# --------------------------------------------------
+
 n <- nrow(F_train)
 k <- ncol(F_train)
 
@@ -605,9 +605,8 @@ objective <- Minimize(log_loss + lambda * sum_squares(W) + gamma * fair_penalty)
 problem <- Problem(objective)
 result <- solve(problem)
 
-# --------------------------------------------------
 # Predict and evaluate
-# --------------------------------------------------
+
 weights <- result$getValue(W)
 intercept <- result$getValue(b)
 
