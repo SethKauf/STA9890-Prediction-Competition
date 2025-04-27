@@ -4966,7 +4966,7 @@ window.Quarto = {
 <p>There are other contexts of fairness, such as fairness in pricing, which deals with pricing algorithms and how to properly balance them between societal equity and the supply-and-demand of the private sector. However, that is outside the purview of this report.</p>
 <section id="examples-of-unfairness" class="level2">
 <h2 class="anchored" data-anchor-id="examples-of-unfairness">2.1 Examples of Unfairness</h2>
-<p>However, sometimes the simplest approach is not necessarily the best. This quantitative approach to coerce subgroups into equally receiving a positive (meaning the “1” outcome in a model’s predictions versus the “0”).</p>
+<p>Below are two examples of societal unfairness baked into ML Systems.</p>
 <section id="compas" class="level3">
 <h3 class="anchored" data-anchor-id="compas">2.1.1 COMPAS</h3>
 <p>The COMPAS algorithm developed by the firm Equivant is commonly used by judges and forecasts which criminals are most likely to reoffend, using a quantitative approach to fairness. Although it was correctly predicting recidivism rates for defendants regardless of rates (a good True Positive rate), it was scoring black people who would not re-offend at twice the risk of recidivism as their white counterparts (bad False Positive rate). While Equivant argued that because their model was correctly predicting recidivism rates when a defendant did reoffend, it proved their model was unbiased. ProPublica, who led the research into their model’s False Positives, argued against the misclassification based on race that occurred in the model.</p>
@@ -4990,7 +4990,8 @@ window.Quarto = {
 <p>To research the potential of bias in a social context (and by extent, in a ML System), I picked a dataset from UC Irvine’s Machine Learning Repository. The dataset represents ten years (1999-2008) of clinical care at 130 US hospitals and integrated delivery networks. Each row concerns hospital records of patients diagnosed with diabetes, who underwent laboratory, medications, and stayed up to 14 days.</p>
 <section id="target-class" class="level2">
 <h2 class="anchored" data-anchor-id="target-class">3.1 Target Class</h2>
-<p>The target class in this dataset is the <code>READMITTED</code> column which has three values: No, &lt;30 and &gt;30. This feature asks whether a patient was readmitted following their initial hospital visit within 30 days (early readmission) or after 30 days (general readmission). Its raw data contains 101,766 records with 50 columns (n x p) and a secondary spreadsheet used to connect three <code>id</code> columns in the data to an English meaning (ie <code>admission_type_id = 1</code> is an <code>Emergency</code>). This target was turned into two potential target-y classes: readmit_early and readmit_at_all. The former is just the values of &lt;30 while the latter is either &lt;30 or &gt;30. Without any data cleaning or feature engineering, the class imbalance for readmit_early is about 88.8% : 11.2% for 0/1, while readmit_at_all is about 53.9% : 46.1% for 0/1. Although there is value in looking into readmit_early as a target, especially following the data cleaning in the next section, the class imbalance widens and it becomes a virtually untenable target class without any sort of artificial balancing such as the SMOTE method.</p>
+<p>The target class in this dataset is the <code>READMITTED</code> column which has three values: <code>No</code>, <code>&lt;30</code> and <code>&gt;30</code>. This feature asks whether a patient was readmitted following their initial hospital visit within 30 days (early readmission) or after 30 days (general readmission). Its raw data contains 101,766 records with 50 columns (<span class="math inline">\(101,766 \space \times \space 50\)</span>) and a secondary spreadsheet used to connect three <code>id</code> columns in the data to an English meaning (ie <code>admission_type_id = 1</code> is an <code>Emergency</code>).</p>
+<p>This target was turned into two potential target-y classes: <code>readmit_early</code> and <code>readmit_at_all</code>. The former is just the values of <code>&lt;30</code> while the latter is either <code>&lt;30</code> or <code>&gt;30</code>. Without any data cleaning or feature engineering, the class imbalance for <code>readmit_early</code> is about 88.8% : 11.2% for 0 : 1, while <code>readmit_at_all</code> is about 53.9% : 46.1% for 0 : 1. Although there is value in looking into <code>readmit_early</code> as a target, the class imbalance widens following the data cleaning section and it becomes a virtually untenable target class without any sort of artificial balancing such as the SMOTE method.</p>
 <p>As a note: the data cleaning and EDA was done in Python to create the eventual modeling data. The full cleaning and EDA code can be <a href="https://github.com/SethKauf/STA9890-Prediction-Competition/blob/r2/Workfiles/Report_2_Workfile.ipynb">found on my GitHub</a> if interested.</p>
 <div class="center-image" style="text-align: center;">
 <div class="quarto-figure quarto-figure-center">
@@ -5003,7 +5004,7 @@ window.Quarto = {
 </section>
 <section id="data-cleaning" class="level2">
 <h2 class="anchored" data-anchor-id="data-cleaning">3.2 Data Cleaning</h2>
-<p>The first step to dealing with the data was cleaning it. This started by checking for NULLs, which in this dataset was denoted by the presence of “?” in the data. Only 7 of the 50 original features have NULLs. <code>race</code>, <code>diag_1</code>, <code>diag_2</code>, and <code>diag_3</code> (diagnoses 1, 2 and 3 respectively) have &lt; 3% of their records as NULL. <code>payer_code</code> and <code>medical_specialty</code> (insurance provider and medical specialty of the overseeing physician) are about 40% NULL.</p>
+<p>The first step to dealing with the data was cleaning it. This started by checking for NULLs, which in this dataset was denoted by the presence of <code>?</code> in the data. Only 7 of the 50 original features have NULLs. <code>race</code>, <code>diag_1</code>, <code>diag_2</code>, and <code>diag_3</code> (diagnoses 1, 2 and 3 respectively) have &lt; 3% of their records as NULL. <code>payer_code</code> and <code>medical_specialty</code> (insurance provider and medical specialty of the overseeing physician) are about 40% <code>NULL</code>.</p>
 <div class="center-image" style="text-align: center;">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -5012,9 +5013,9 @@ window.Quarto = {
 </figure>
 </div>
 </div>
-<p>For these 6 columns, I elected to remove all records with the NULL values in any of these columns. This removed about 40% of the data, bringing the total number of records down to 48,140.</p>
+<p>For these 6 columns, I elected to remove all records with the <code>NULL</code> values in any of these columns. This removed about 40% of the data, bringing the total number of records down to 48,140.</p>
 <p>The 7th column, weight, was comprised of nearly 97% NULL data. Once I accounted for the NULLs in the first 6 columns, only about 3,000 of the 48,140 records actually had a filled value for weight. This is actually extremely unfortunate as weight is both a demographic feature and an especially important feature in something like diabetes. However, there is simply too much data lost by keeping it at the expense of ~45,000 records, while imputation of some sort (ie mean, forward fill, random-fill, etc. imputation) would be too sketchy given the sheer volume of NULL values. Because of this, the <code>weight</code> feature has been completely dropped from the model.</p>
-<p>Another consideration in the dataset is that some patients are “repeat” patients. Looking at the distribution of these patients, we see most only visit the hospital once, with a median of 1, an upper bound on the IQR of 2, and a mean of ~1.4 visits. With this in mind, any patient whose number appears in the data more than 3 times was removed. Further, because this still means there are some duplicates, when it comes time to split the data, it will be split on <code>patient_nbr</code> to avoid patients appearing in both the training and testing data.</p>
+<p>Another consideration in the dataset is that some patients are “repeat” patients. Looking at the distribution of these patients, we see most only visit the hospital once, with a median of 1, an upper bound on the IQR of 2, and a mean of ~1.49 visits. With this in mind, any patient whose number appears in the data more than 3 times was removed. Further, because this still means there are some duplicates, when it comes time to split the data, it will be split on <code>patient_nbr</code> to avoid patients appearing in both the training and testing data.</p>
 <div class="center-image" style="text-align: center;">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -5039,7 +5040,7 @@ window.Quarto = {
 </ul></li>
 <li><p>Dummy encoding</p>
 <ul>
-<li>race <span class="math inline">\(\rightarrow\)</span> race_AfricanAmerican, race_Caucasian…</li>
+<li><code>race</code> <span class="math inline">\(\rightarrow\)</span> <code>race_AfricanAmerican</code>, <code>race_Caucasian</code>…</li>
 </ul></li>
 <li><p>Binarizing</p>
 <ul>
@@ -5615,13 +5616,13 @@ window.Quarto = {
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Response vector</span></span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>y_train_ens <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(test_data<span class="sc">$</span>readmit_at_all <span class="sc">==</span> <span class="dv">1</span>, <span class="dv">1</span>, <span class="sc">-</span><span class="dv">1</span>)</span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co"># --------------------------------------------------</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimate bias per model (Demographic Parity)</span></span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="co"># --------------------------------------------------</span></span>
-<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Define protected attribute, e.g., race_AfricanAmerican</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="co"># protected attribute</span></span>
 <span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>protected_attr <span class="ot">&lt;-</span> test_data<span class="sc">$</span>race_AfricanAmerican</span>
 <span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute demographic disparity per model</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a><span class="co"># demographic disparity per model</span></span>
 <span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>get_ddp <span class="ot">&lt;-</span> <span class="cf">function</span>(preds, protected) {</span>
 <span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mean</span>(preds[protected <span class="sc">==</span> <span class="dv">1</span>]) <span class="sc">-</span> <span class="fu">mean</span>(preds[protected <span class="sc">==</span> <span class="dv">0</span>])</span>
 <span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>}</span>
@@ -5629,52 +5630,50 @@ window.Quarto = {
 <span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>bias_vec <span class="ot">&lt;-</span> <span class="fu">sapply</span>(ensemble_scaled, get_ddp, <span class="at">protected =</span> protected_attr)</span>
 <span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>bias_vec <span class="ot">&lt;-</span> <span class="fu">matrix</span>(bias_vec, <span class="at">nrow =</span> <span class="fu">length</span>(bias_vec), <span class="at">ncol =</span> <span class="dv">1</span>)</span>
 <span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a><span class="co"># --------------------------------------------------</span></span>
-<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a><span class="co"># FairStacks Optimization</span></span>
-<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a><span class="co"># --------------------------------------------------</span></span>
-<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="fu">nrow</span>(F_train)</span>
-<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>k <span class="ot">&lt;-</span> <span class="fu">ncol</span>(F_train)</span>
-<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>W <span class="ot">&lt;-</span> <span class="fu">Variable</span>(k)</span>
-<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>b <span class="ot">&lt;-</span> <span class="fu">Variable</span>(<span class="dv">1</span>)</span>
-<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a>margin <span class="ot">&lt;-</span> F_train <span class="sc">%*%</span> W <span class="sc">+</span> b</span>
-<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a>log_loss <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">logistic</span>(<span class="sc">-</span> y_train_ens <span class="sc">*</span> margin)) <span class="sc">/</span> n</span>
-<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fl">0.0001</span>  <span class="co"># regularization on weights</span></span>
-<span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a>gamma <span class="ot">&lt;-</span> <span class="dv">10</span>       <span class="co"># fairness penalty</span></span>
-<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a>fair_penalty <span class="ot">&lt;-</span> <span class="fu">abs</span>(<span class="fu">t</span>(bias_vec) <span class="sc">%*%</span> W)</span>
-<span id="cb28-34"><a href="#cb28-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-35"><a href="#cb28-35" aria-hidden="true" tabindex="-1"></a>objective <span class="ot">&lt;-</span> <span class="fu">Minimize</span>(log_loss <span class="sc">+</span> lambda <span class="sc">*</span> <span class="fu">sum_squares</span>(W) <span class="sc">+</span> gamma <span class="sc">*</span> fair_penalty)</span>
-<span id="cb28-36"><a href="#cb28-36" aria-hidden="true" tabindex="-1"></a>problem <span class="ot">&lt;-</span> <span class="fu">Problem</span>(objective)</span>
-<span id="cb28-37"><a href="#cb28-37" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">solve</span>(problem)</span>
-<span id="cb28-38"><a href="#cb28-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-39"><a href="#cb28-39" aria-hidden="true" tabindex="-1"></a><span class="co"># --------------------------------------------------</span></span>
-<span id="cb28-40"><a href="#cb28-40" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict and evaluate</span></span>
-<span id="cb28-41"><a href="#cb28-41" aria-hidden="true" tabindex="-1"></a><span class="co"># --------------------------------------------------</span></span>
-<span id="cb28-42"><a href="#cb28-42" aria-hidden="true" tabindex="-1"></a>weights <span class="ot">&lt;-</span> result<span class="sc">$</span><span class="fu">getValue</span>(W)</span>
-<span id="cb28-43"><a href="#cb28-43" aria-hidden="true" tabindex="-1"></a>intercept <span class="ot">&lt;-</span> result<span class="sc">$</span><span class="fu">getValue</span>(b)</span>
-<span id="cb28-44"><a href="#cb28-44" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-45"><a href="#cb28-45" aria-hidden="true" tabindex="-1"></a>ensemble_scores <span class="ot">&lt;-</span> F_train <span class="sc">%*%</span> weights <span class="sc">+</span> intercept</span>
-<span id="cb28-46"><a href="#cb28-46" aria-hidden="true" tabindex="-1"></a>final_pred <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(ensemble_scores <span class="sc">&gt;=</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)</span>
-<span id="cb28-47"><a href="#cb28-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-48"><a href="#cb28-48" aria-hidden="true" tabindex="-1"></a>y_true <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">as.character</span>(test_data<span class="sc">$</span>readmit_at_all))</span>
-<span id="cb28-49"><a href="#cb28-49" aria-hidden="true" tabindex="-1"></a>ensemble_cm <span class="ot">&lt;-</span> <span class="fu">confusionMatrix</span>(<span class="fu">as.factor</span>(final_pred), <span class="fu">as.factor</span>(y_true))</span>
-<span id="cb28-50"><a href="#cb28-50" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-51"><a href="#cb28-51" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot confusion matrix</span></span>
-<span id="cb28-52"><a href="#cb28-52" aria-hidden="true" tabindex="-1"></a>ensemble_cm_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(ensemble_cm<span class="sc">$</span>table)</span>
-<span id="cb28-53"><a href="#cb28-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-54"><a href="#cb28-54" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> ensemble_cm_df, <span class="fu">aes</span>(<span class="at">x =</span> Reference, <span class="at">y =</span> Prediction, <span class="at">fill =</span> Freq)) <span class="sc">+</span></span>
-<span id="cb28-55"><a href="#cb28-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="at">color =</span> <span class="st">&quot;white&quot;</span>) <span class="sc">+</span></span>
-<span id="cb28-56"><a href="#cb28-56" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label =</span> Freq), <span class="at">size =</span> <span class="dv">5</span>) <span class="sc">+</span></span>
-<span id="cb28-57"><a href="#cb28-57" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_gradient</span>(<span class="at">low =</span> <span class="st">&quot;white&quot;</span>, <span class="at">high =</span> <span class="st">&quot;purple&quot;</span>) <span class="sc">+</span></span>
-<span id="cb28-58"><a href="#cb28-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb28-59"><a href="#cb28-59" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">&quot;FairStacks Ensemble Confusion Matrix&quot;</span>,</span>
-<span id="cb28-60"><a href="#cb28-60" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">&quot;Actual Label&quot;</span>,</span>
-<span id="cb28-61"><a href="#cb28-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">&quot;Predicted Label&quot;</span></span>
-<span id="cb28-62"><a href="#cb28-62" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb28-63"><a href="#cb28-63" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a><span class="co"># FairStacks Optimization</span></span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="fu">nrow</span>(F_train)</span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>k <span class="ot">&lt;-</span> <span class="fu">ncol</span>(F_train)</span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>W <span class="ot">&lt;-</span> <span class="fu">Variable</span>(k)</span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>b <span class="ot">&lt;-</span> <span class="fu">Variable</span>(<span class="dv">1</span>)</span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>margin <span class="ot">&lt;-</span> F_train <span class="sc">%*%</span> W <span class="sc">+</span> b</span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a>log_loss <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">logistic</span>(<span class="sc">-</span> y_train_ens <span class="sc">*</span> margin)) <span class="sc">/</span> n</span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fl">0.0001</span>  <span class="co"># regularization on weights</span></span>
+<span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a>gamma <span class="ot">&lt;-</span> <span class="dv">10</span>       <span class="co"># fairness penalty</span></span>
+<span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>fair_penalty <span class="ot">&lt;-</span> <span class="fu">abs</span>(<span class="fu">t</span>(bias_vec) <span class="sc">%*%</span> W)</span>
+<span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-34"><a href="#cb28-34" aria-hidden="true" tabindex="-1"></a>objective <span class="ot">&lt;-</span> <span class="fu">Minimize</span>(log_loss <span class="sc">+</span> lambda <span class="sc">*</span> <span class="fu">sum_squares</span>(W) <span class="sc">+</span> gamma <span class="sc">*</span> fair_penalty)</span>
+<span id="cb28-35"><a href="#cb28-35" aria-hidden="true" tabindex="-1"></a>problem <span class="ot">&lt;-</span> <span class="fu">Problem</span>(objective)</span>
+<span id="cb28-36"><a href="#cb28-36" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">solve</span>(problem)</span>
+<span id="cb28-37"><a href="#cb28-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-38"><a href="#cb28-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict and evaluate</span></span>
+<span id="cb28-39"><a href="#cb28-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-40"><a href="#cb28-40" aria-hidden="true" tabindex="-1"></a>weights <span class="ot">&lt;-</span> result<span class="sc">$</span><span class="fu">getValue</span>(W)</span>
+<span id="cb28-41"><a href="#cb28-41" aria-hidden="true" tabindex="-1"></a>intercept <span class="ot">&lt;-</span> result<span class="sc">$</span><span class="fu">getValue</span>(b)</span>
+<span id="cb28-42"><a href="#cb28-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-43"><a href="#cb28-43" aria-hidden="true" tabindex="-1"></a>ensemble_scores <span class="ot">&lt;-</span> F_train <span class="sc">%*%</span> weights <span class="sc">+</span> intercept</span>
+<span id="cb28-44"><a href="#cb28-44" aria-hidden="true" tabindex="-1"></a>final_pred <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(ensemble_scores <span class="sc">&gt;=</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)</span>
+<span id="cb28-45"><a href="#cb28-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-46"><a href="#cb28-46" aria-hidden="true" tabindex="-1"></a>y_true <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">as.character</span>(test_data<span class="sc">$</span>readmit_at_all))</span>
+<span id="cb28-47"><a href="#cb28-47" aria-hidden="true" tabindex="-1"></a>ensemble_cm <span class="ot">&lt;-</span> <span class="fu">confusionMatrix</span>(<span class="fu">as.factor</span>(final_pred), <span class="fu">as.factor</span>(y_true))</span>
+<span id="cb28-48"><a href="#cb28-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-49"><a href="#cb28-49" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot confusion matrix</span></span>
+<span id="cb28-50"><a href="#cb28-50" aria-hidden="true" tabindex="-1"></a>ensemble_cm_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(ensemble_cm<span class="sc">$</span>table)</span>
+<span id="cb28-51"><a href="#cb28-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-52"><a href="#cb28-52" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> ensemble_cm_df, <span class="fu">aes</span>(<span class="at">x =</span> Reference, <span class="at">y =</span> Prediction, <span class="at">fill =</span> Freq)) <span class="sc">+</span></span>
+<span id="cb28-53"><a href="#cb28-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="at">color =</span> <span class="st">&quot;white&quot;</span>) <span class="sc">+</span></span>
+<span id="cb28-54"><a href="#cb28-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label =</span> Freq), <span class="at">size =</span> <span class="dv">5</span>) <span class="sc">+</span></span>
+<span id="cb28-55"><a href="#cb28-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_gradient</span>(<span class="at">low =</span> <span class="st">&quot;white&quot;</span>, <span class="at">high =</span> <span class="st">&quot;purple&quot;</span>) <span class="sc">+</span></span>
+<span id="cb28-56"><a href="#cb28-56" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb28-57"><a href="#cb28-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">&quot;FairStacks Ensemble Confusion Matrix&quot;</span>,</span>
+<span id="cb28-58"><a href="#cb28-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">&quot;Actual Label&quot;</span>,</span>
+<span id="cb28-59"><a href="#cb28-59" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">&quot;Predicted Label&quot;</span></span>
+<span id="cb28-60"><a href="#cb28-60" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb28-61"><a href="#cb28-61" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>

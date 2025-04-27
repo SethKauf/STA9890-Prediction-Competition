@@ -45,9 +45,13 @@ $\sigma^2=E[\epsilon^2]$
  
 Where $\epsilon$ is the error term.
 
-The full breakdown of the Expected MSE formula is as follows$^1$:
+The full breakdown of the Expected MSE formula is as follows[^mse]:
 
-$MSE(\hat \theta)=E_{\theta}[(\hat \theta - \theta)^2]$ $^2$
+[^mse]: [MSE Wikipedia](https://en.wikipedia.org/wiki/Mean_squared_error)
+
+$MSE(\hat \theta)=E_{\theta}[(\hat \theta - \theta)^2]$[^gmt]
+
+[^gmt]: [Gauss-Markov Theorem Wikipedia](https://en.wikipedia.org/wiki/Gauss%E2%80%93Markov_theorem)
 
 Breaking this out further:
 
@@ -81,7 +85,9 @@ OLS Regression is a simple linear model that tries to fit a line to the data tha
 A Data Generating Process or DGP is the function of the world that generates data. It is the “ground truth” upon which we try to model the data we do have. Everything discussed until now all is built on-top of this idea that the
 real-world has unknowns and we can only do our best to try and understand and even predict those unknowns.
 
-In the context of OLS Regression, the faults for OLS stem from the fact that it is only a BLUE model-type when the underlying DGP is linear. However, what happens if the real DGP isn’t $y=X\beta+\epsilon$, rather it’s $y=X^2 +\epsilon$ a quadratic equation. This would be model misspecification and would cause issues in trying to estimate parameters our DGP. We can test for whether OLS would be a good model type by looking at various factors. First is an expectation of Homoscedasticity in the data, that is **$Var(\epsilon_i|X)=\sigma^2$** or that the residuals (that is, $e=y-\hat y$) have a constant error variance. Running an OLS model on the Credit Card dataset from ISLR$^3$ with a predicted variable of $y$ being the credit card balance, it produces the following chart:
+In the context of OLS Regression, the faults for OLS stem from the fact that it is only a BLUE model-type when the underlying DGP is linear. However, what happens if the real DGP isn’t $y=X\beta+\epsilon$, rather it’s $y=X^2 +\epsilon$ a quadratic equation. This would be model misspecification and would cause issues in trying to estimate parameters our DGP. We can test for whether OLS would be a good model type by looking at various factors. First is an expectation of Homoscedasticity in the data, that is **$Var(\epsilon_i|X)=\sigma^2$** or that the residuals (that is, $e=y-\hat y$) have a constant error variance. Running an OLS model on the Credit Card dataset from ISLR[^isl] with a predicted variable of $y$ being the credit card balance, it produces the following chart:
+
+[^isl]: [ISL Credit Card Data](https://rdrr.io/cran/ISLR/man/Credit.html)
 
 ```{r install-packages_[0], echo=FALSE, message=FALSE, warning=FALSE}
 #| code-fold: TRUE
@@ -371,7 +377,9 @@ $\beta = \frac {X^T y} {X^T X}=(X^T X)^{-1} X^T y$
 
 ## 3.2 OLS Gradient
 
-Gradient Descent refers to the process of iteratively fitting models to the gradient of a function is the vector field whose value at point *p* gives the direction and rate of the fastest increase$^4$. In OLS terms, this translates to
+Gradient Descent refers to the process of iteratively fitting models to the gradient of a function is the vector field whose value at point *p* gives the direction and rate of the fastest increase[^grd]. In OLS terms, this translates to:
+
+[^grd]: [Gradient Wikipedia](https://en.wikipedia.org/wiki/Gradient)
 
 $\beta^{(k+1)}=\beta^{k}-c\nabla\mathcal{L}|_{\beta=\beta^{(k)}}$ where $\nabla\mathcal{L}$ is the loss function on the gradient.
 
@@ -968,13 +976,3 @@ grid.arrange(p1, p2, p3, p4, nrow = 2)
 </div>
 
 The bias is now nearly constant as seen in the top-left, while the in-and-out of sample errors seem to still follow the trends we saw with the last two.
-
-
-# Citations
-$^1$ [MSE Wikipedia](https://en.wikipedia.org/wiki/Mean_squared_error)
-
-$^2$ [Gauss-Markov Theorem Wikipedia](https://en.wikipedia.org/wiki/Gauss%E2%80%93Markov_theorem)
-
-$^3$ [ISL Credit Card Data](https://rdrr.io/cran/ISLR/man/Credit.html)
-
-$^4$ [Gradient Wikipedia](https://en.wikipedia.org/wiki/Gradient)
