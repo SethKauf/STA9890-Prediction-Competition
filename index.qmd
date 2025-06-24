@@ -27,7 +27,7 @@ leaflet() |>
             "I am a Master's student at <b>Baruch College</b>!")
 ```
 
-This is a page created for my STA 9890 class which contains two research reports on Machine Learning and my final prediction competition project for the class, where I finished 15th place out of 31 other students.
+This is a page created for my STA 9890 class which contains two research reports on Machine Learning and my final prediction competition project for the class, where I finished 15th place out of 31 other students (in 27 groups).
 
 ```{r}
 #| include: false

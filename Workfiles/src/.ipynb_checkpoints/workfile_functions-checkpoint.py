@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 def binary_labeler(data, data_cols, one_var, zero_var, suffix='_bin'):
     df = data.copy()
@@ -30,7 +31,18 @@ def checkpoint(df, existing_copy=None):
         print("Skipped.")
         return existing_copy
 
-
+def get_columns_by_dtype(df, dtypes):
+    """
+    Returns a list of column names from df where the dtype matches any in dtypes.
+    
+    Parameters:
+        df (pd.DataFrame): The input DataFrame.
+        dtypes (list): A list of dtype strings to filter by (e.g., ['object'], ['int64', 'float64']).
+    
+    Returns:
+        list: Column names with matching dtypes.
+    """
+    return df.select_dtypes(include=dtypes).columns.tolist()
 
 def count_values(df,value:str):
     
@@ -92,3 +104,163 @@ def count_nulls(df):
     print("-" * 60)
     for col, count, percent in null_counts:
         print(f"{col:<30} {count:>15,} {percent:>11.2f}%")
+
+def collapse_rare_categories(df, col, min_count=100):
+    freq = df[col].value_counts()
+    rare_vals = freq[freq < min_count].index
+    df[col] = df[col].where(~df[col].isin(rare_vals), other='Other')
+    return df
+
+# Read in csv files from site
+def read_gh(URL, f):
+    return pd.read_csv(URL + f)
+
+def clean_building_dfs(df):
+    tfcols = ['elevator','has_cooling','has_heat']
+    for col in tfcols:
+        df[col] = df[col].fillna(0).astype(int)
+
+    quality_map = {
+    'F':0,
+    'E':1,
+    'D':2,
+    'C':3,
+    'B':4,
+    'A':5,
+    'X':6
+    }
+
+    df['quality'] = df['quality'].map(quality_map)
+
+    quality_description_map = {
+        'Poor':0,
+        'Very Low':1,
+        'Low':2,
+        'Average':3,
+        'Good':4,
+        'Excellent':5,
+        'Superior':6
+    }
+
+    df['quality_description'] = df['quality_description'].map(quality_description_map)
+
+    bc_map = {
+        'Unsound':0,
+        'Very Poor':1,
+        'Poor':2,
+        'Fair':3,
+        'Average':4,
+        'Good':5,
+        'Very Good':6,
+        'Excellent':7
+    }
+
+    df['building_condition'] = df['building_condition'].map(bc_map)
+
+    grade_map = {
+        'E-':1.3,
+        'E':1.6,
+        'E+':1.9,
+        'D-':2.3,
+        'D':2.6,
+        'D+':2.9,
+        'C-':3.3,
+        'C':3.6,
+        'C+':3.9,
+        'B-':4.3,
+        'B':4.6,
+        'B+':4.9,
+        'A-':5.3,
+        'A':5.6,
+        'A+':5.9,
+        'X-':6.3,
+        'X':6.6,
+        'X+':6.9
+    }
+
+    df['grade'] = df['grade'].map(grade_map)
+
+    pc_map = {
+        'Unsound':0,
+        'Very Poor':1,
+        'Poor':2,
+        'Fair':3,
+        'Average':4,
+        'Good':5,
+        'Very Good':6,
+        'Excellent':7
+    }
+    
+    df['physical_condition'] = df['physical_condition'].map(pc_map)
+
+    df.loc[df['foundation_type'] == 'Basement and Basement', 'foundation_type'] = 'Basement'
+
+    df.loc[(df['foundation_type']=='Basement and Slab')|(df['foundation_type']=='Crawl Space and Slab')|(df['foundation_type']=='Basement and Crawl Space')|
+           (df['foundation_type']=='Basement and Pier and Beam')|(df['foundation_type']=='Pier and Beam')|
+           (df['foundation_type']=='Pier and Beam and Pier and Beam')|(df['foundation_type']=='Pier and Beam and Slab'),'foundation_type'] = 'Mixed'
+
+    dummies = pd.get_dummies(df['foundation_type'], prefix='foundation').astype('Int64')
+    df = pd.concat([df, dummies], axis=1)
+        
+    df = group_rare_categories(df, 'exterior_walls', threshold=1000, new_label='Other')
+
+    # Keywords to extract
+    keywords = [
+        'Brick Veneer',
+        'Brick Masonry',
+        'Concrete Block',
+        'Vinyl',
+        'Stucco',
+        'Stone',
+        'Other'
+    ]
+
+    # Create 1/0 dummy columns based on substring presence
+    for key in keywords:
+        col_name = key.replace(' ', '_').lower()  # e.g., 'Brick Veneer' → 'brick_veneer'
+        df[col_name] = df['exterior_walls'].fillna('').str.contains(key).astype('int8')
+
+    df = df.drop(['exterior_walls','foundation_type'],axis=1)
+
+    return df
+
+def create_test_preds(test:pd.DataFrame,model) -> pd.DataFrame:
+    
+    """
+    Takes in the test dataframe and returns a prediction file
+    """
+    
+    # ensure test is unique
+    test = test.drop_duplicates(subset='acct')
+    
+    # create X_test
+    X_test = test.drop(columns=['acct'])
+    
+    # get unique account ids
+    acct_ids = test['acct']
+    
+    # get preds
+    y_pred = model.predict(X_test)
+    
+    # create output dataframe
+    output_df = pd.DataFrame({
+        'acct':acct_ids,
+        'TARGET':y_pred
+    })
+    
+    # rename acct
+    output_df.rename({'acct':'ACCOUNT'},axis=1,inplace=True)
+    
+    # reset index
+    output_df.reset_index(inplace=True)
+    
+    return output_df
+
+def get_high_correlations(df, threshold=0.8):
+    corr = df.corr().abs()
+    upper = np.triu(np.ones(corr.shape), k=1).astype(bool)
+    high_corr = [(df.columns[i], df.columns[j], corr.iloc[i, j])
+                 for i in range(len(corr.columns)) 
+                 for j in range(len(corr.columns)) 
+                 if upper[i, j] and corr.iloc[i, j] > threshold]
+    return sorted(high_corr, key=lambda x: -x[2])

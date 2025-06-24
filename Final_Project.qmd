@@ -3,9 +3,7 @@ title: "Home Pricing Prediction Competition"
 subtitle: "STA 9890 Final Project"
 format: html
 execute:
-  echo: false
   warning: false
-  message: false
   engines:
     jupyter: learn-env
 ---
@@ -18,11 +16,11 @@ This project focused on data preparation, followed by regression modeling techni
 
 Below is an outline for how the project was constructed along with some of the code we ran to get the task done.
 
-The GitHub repository for this project [Bcan be found here](https://github.com/SethKauf/STA9890-Prediction-Competition/tree/main).
+The GitHub repository for this project [can be found here](https://github.com/SethKauf/STA9890-Prediction-Competition/tree/main).
 
 # 2. Background Context
 
-For this project, the class for STA 9890 was tasked with [predicting home prices in an unknown metropolitan area out west](https://michael-weylandt.com/STA9890/competition.html) (later revealed to be the Houston Metro Area).
+For this project, the class was tasked with [predicting home prices in an unknown metropolitan area out west](https://michael-weylandt.com/STA9890/competition.html) (later revealed to be the Houston Metro Area).
 
 As a class, we competed with our peers on [*Kaggle*](https://www.kaggle.com/competitions/baruch-sta-9890-spring-2025) to submit a prediction-set of homes and their 2019 price, the `y-Target`.
 
@@ -622,7 +620,7 @@ NULLs presented a large problem in the dataset. Of the `128` potential features,
 count_nulls(train,top_n=10)
 ```
 
-Our approach was to use a [**Histogram-based Gradient Boosting Regression Tree**](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingRegressor.html) from the `scikit-learn` library.
+The approach used is a [**Histogram-based Gradient Boosting Regression Tree**](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingRegressor.html) from the `scikit-learn` library.
 
 This estimator works well with big datasets such as this one, and especially works well with `NULL` values.
 
@@ -683,7 +681,7 @@ for col in missing_cols:
     preds = model.predict(X_missing)
     test.loc[test[col].isnull(), col] = preds
     
-print(f"Number of missing columns in the training data: {len(missing_cols)}")
+print(f"Number of missing columns in the testing data: {len(missing_cols)}")
 ```
 
 # 5. Modeling
@@ -696,9 +694,9 @@ The subsequent three models tried were variations of $\ell_p$ modeling:
   
   * LASSO
 
-* Ridge
+  * Ridge
 
-* RidgeCV
+  * RidgeCV
 
 With `GridSearch` being used to find the best parameters for each on a validation set. Of the three, *LASSO* saw the most improvement, bringing the *Test RMSE* to 46,677.
 
@@ -708,8 +706,6 @@ Next were two variations of *XGBoost Regressor*, the first with no hyperparamete
 
 The *XGBoost Regressor* scored an astonishing 24,121 *Train RMSE*, while the `GridSearch` variation scored 40,701. The former of these would post a *Test RMSE* of 42,144 which would be our team's best score in the competition.
 
-The `LightGBM` model gave some issues, discussed below:
-
 The performance of the `LightGBM` model on the validation set varied depending on the number of columns used during training. Since the test set was missing columns such as `land_value_2019`, `assessed_2019`, and `building_value_2019`, we evaluated the model's performance both with and without these features. When these three columns were excluded, the average RMSE ranged between ~50K and 55K. However, including them improved the RMSE to between ~40K and 45K.
 
 For our final Kaggle submission, we chose to model these three columns separately, as the RMSE on the training set was significantly lower when they were included. Unfortunately, our Kaggle submission resulted in an RMSE of 174,621. Upon further investigation, we discovered that the order of columns in the test set differed slightly from that in the training set. This mismatch likely contributed to the large discrepancy between our validation and test performance.
@@ -718,7 +714,7 @@ Finally, one `Ensemble` and three `Stack` models were trained.
 
 The `Ensemble` first used three models, `XGBRegressor`, `BayesianRidge` and `Ridge`. A simple linear estimator was trained using the weighted inference of each model, with the weights being proportional to the *Train RMSE* of the three models.
 
-The `Stack` models similar to the `Ensemble` had three training models with a final **meta-model* such as a `Ridge` regressor or `XGBRegressor` which would use `NumPy` to stack and ultimately predict using.
+The `Stack` models similar to the `Ensemble` had three training models with a final **meta-model** such as a `Ridge` regressor or `XGBRegressor` which would use `NumPy` to stack and ultimately predict using.
 
 ## 5b. Final Model: Simple XGBoost Regressor
 
@@ -738,6 +734,7 @@ rmse_xgb = np.sqrt(mean_squared_error(y, pred_xgb))
 
 print(f"XGBoost RMSE: {rmse_xgb:,.2f}")
 ```
+The *RMSE* produced here is actually better than in the original training set, which is interesting. This shows the model is prone to a good amount of overfitting.
 
 ## 5c. Results and Analysis
 
@@ -772,11 +769,11 @@ While methods other than the `HistGradientBoostingRegressor` were considered, it
 
 3. Try alternative forms of modeling
 
-We wanted to do `RandomForestRegression` among several other models, however time was a massive factor and these models took a very long time to run.
+Due to the time factor, models such as `RandomForestRegression` among several others, were not feasible to use.
 
 4. Use a hyperparameter tuner such as `optuna`
 
-While we only first heard of it during the in-class presentations, this library seems like a much better version of `GridSearch`
+While I only first heard of it during the in-class presentations, this library seems like a much better version of `GridSearch`.
 
 5. Model on `Colab` or in `R`
 
@@ -784,7 +781,7 @@ In `Colab`, we can use the *GPU* to assist in modeling, which can't be done in `
 
 Modeling in `R` might have been an alternative approach, as their statistical libraries seem to be more flushed out than `Python`. Though, for this site, I've converted the code from Python to R.
 
-6. Figure out what caused the greatest reduciton in *RMSE*
+6. Figure out what caused the greatest reduction in *RMSE*
 
 What part of the preprocessing step(s) really helped the model and which did nothing?
 
@@ -794,6 +791,6 @@ For the amount of time allotted to complete this project, this was a fairly reas
 
 It was an interesting project going up against the rest of the class like this and finishing middle-of-the-pack (though a lot closer to the top than the bottom). The positive results that came about after a lot of preprocessing showed that this project was on the right track.
 
-It was interesting and a bit surprising that linear models still demonstrated strong predictive capabilities and, in some cases, even outperformed more complex algorithms such as LGBM and XGBoost. Additionally, it was valuable to gain hands-on experience with different models by tuning their parameters and evaluating their performance.
+It was also interesting and a bit surprising that linear models still demonstrated strong predictive capabilities and, in some cases, even outperformed more complex algorithms such as LGBM and XGBoost. Additionally, it was valuable to gain hands-on experience with different models by tuning their parameters and evaluating their performance.
 
-After listening to our peers present at the last class, there are a lot of options that could be use if we were to pick up this project again, to make a truly great model.
+After listening to my peers present at the last class, there are a lot of options that could be use if I were to pick up this project again to make a truly great model.

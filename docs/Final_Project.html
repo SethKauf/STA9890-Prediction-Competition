@@ -19,6 +19,40 @@ ul.task-list li input[type="checkbox"] {
 width: 0.8em;
 margin: 0 0.8em 0.2em -1em;  vertical-align: middle;
 }
+
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+}
+pre.numberSource { margin-left: 3em; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -4937,11 +4971,11 @@ window.Quarto = {
 <p>This is a brief paper reflecting on the final project for STA 9890.</p>
 <p>This project focused on data preparation, followed by regression modeling techniques.</p>
 <p>Below is an outline for how the project was constructed along with some of the code we ran to get the task done.</p>
-<p>The GitHub repository for this project <a href="https://github.com/SethKauf/STA9890-Prediction-Competition/tree/main">Bcan be found here</a>.</p>
+<p>The GitHub repository for this project <a href="https://github.com/SethKauf/STA9890-Prediction-Competition/tree/main">can be found here</a>.</p>
 </section>
 <section id="background-context" class="level1">
 <h1>2. Background Context</h1>
-<p>For this project, the class for STA 9890 was tasked with <a href="https://michael-weylandt.com/STA9890/competition.html">predicting home prices in an unknown metropolitan area out west</a> (later revealed to be the Houston Metro Area).</p>
+<p>For this project, the class was tasked with <a href="https://michael-weylandt.com/STA9890/competition.html">predicting home prices in an unknown metropolitan area out west</a> (later revealed to be the Houston Metro Area).</p>
 <p>As a class, we competed with our peers on <a href="https://www.kaggle.com/competitions/baruch-sta-9890-spring-2025"><em>Kaggle</em></a> to submit a prediction-set of homes and their 2019 price, the <code>y-Target</code>.</p>
 <p>My best model’s <em>Training RMSE</em> was 24,121 with a Public-Leaderboard score of 42,143 and a Private-Leaderboard score of 43,759 – ranking for 15th place of 27th. Fortunately, our <em>MSE</em> was still fairly reasonable on the leaderboard, though. w This project was entirely done in <code>Python</code> on <code>JupyterNotebook</code>. For simplicity of using a <code>Quarto</code> doc, I’ve migrated the code to R.</p>
 <p>You can view the <code>Workfiles</code> here on <a href="https://github.com/SethKauf/STA9890-Prediction-Competition">GitHub</a>.</p>
@@ -4952,22 +4986,494 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="a.-functions">3a. Functions</h2>
 <p>The below functions are used in the importation, cleaning and modeling of the data. Some are built based on previous work while others were used during those processes.</p>
 <p><code>pip install</code> (or <code>conda install</code>) the needed packages</p>
+<div id="befda6fe" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># All Libraries Needed</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># !pip install numpy pandas seaborn matplotlib scikit-learn xgboost</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 <p>Libraries, display settings and site URL</p>
+<div id="e6b2237f" class="cell" data-execution_count="2">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>pd.set_option(<span class="st">&#39;display.max_columns&#39;</span>,<span class="dv">50</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>pd.set_option(<span class="st">&#39;display.max_rows&#39;</span>,<span class="dv">100</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> warnings</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>warnings.filterwarnings(<span class="st">&#39;ignore&#39;</span>)</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.experimental <span class="im">import</span> enable_hist_gradient_boosting</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.ensemble <span class="im">import</span> HistGradientBoostingRegressor</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> mean_squared_error</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> xgboost <span class="im">import</span> XGBRegressor</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>PATH <span class="op">=</span> <span class="st">&#39;../data/pc/&#39;</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>URL <span class="op">=</span> <span class="st">&quot;https://michael-weylandt.com/STA9890/competition_data/&quot;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
 <p>Functions</p>
+<div id="0887f4b2" class="cell" data-execution_count="3">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Read in csv files from site</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read_gh(URL, f):</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pd.read_csv(URL <span class="op">+</span> f)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Groups &quot;rare&quot; (low frequency) items from a column</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> group_rare_categories(df, column, threshold<span class="op">=</span><span class="dv">100</span>, new_label<span class="op">=</span><span class="st">&#39;Other&#39;</span>):</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co">    Replace categories in a column that appear fewer than `threshold` times with `new_label`.</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co">        df (pd.DataFrame): DataFrame to process</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co">        column (str): Name of the column to transform</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co">        threshold (int): Frequency threshold below which values are replaced</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="co">        new_label (str): Label to replace rare categories with</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co">        pd.DataFrame: Updated DataFrame with rare values grouped</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    value_counts <span class="op">=</span> df[column].value_counts()</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    rare_values <span class="op">=</span> value_counts[value_counts <span class="op">&lt;</span> threshold].index</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    df[column] <span class="op">=</span> df[column].<span class="bu">apply</span>(<span class="kw">lambda</span> x: new_label <span class="cf">if</span> x <span class="kw">in</span> rare_values <span class="cf">else</span> x)</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Cleans the Building DATAFRAME files</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> clean_building_dfs(df):</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    tfcols <span class="op">=</span> [<span class="st">&#39;elevator&#39;</span>,<span class="st">&#39;has_cooling&#39;</span>,<span class="st">&#39;has_heat&#39;</span>]</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> col <span class="kw">in</span> tfcols:</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>        df[col] <span class="op">=</span> df[col].fillna(<span class="dv">0</span>).astype(<span class="bu">int</span>)</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    quality_map <span class="op">=</span> {</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;F&#39;</span>:<span class="dv">0</span>,</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;E&#39;</span>:<span class="dv">1</span>,</span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;D&#39;</span>:<span class="dv">2</span>,</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;C&#39;</span>:<span class="dv">3</span>,</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;B&#39;</span>:<span class="dv">4</span>,</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;A&#39;</span>:<span class="dv">5</span>,</span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;X&#39;</span>:<span class="dv">6</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">&#39;quality&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;quality&#39;</span>].<span class="bu">map</span>(quality_map)</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>    quality_description_map <span class="op">=</span> {</span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Poor&#39;</span>:<span class="dv">0</span>,</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Very Low&#39;</span>:<span class="dv">1</span>,</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Low&#39;</span>:<span class="dv">2</span>,</span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Average&#39;</span>:<span class="dv">3</span>,</span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Good&#39;</span>:<span class="dv">4</span>,</span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Excellent&#39;</span>:<span class="dv">5</span>,</span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Superior&#39;</span>:<span class="dv">6</span></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">&#39;quality_description&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;quality_description&#39;</span>].<span class="bu">map</span>(quality_description_map)</span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>    bc_map <span class="op">=</span> {</span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Unsound&#39;</span>:<span class="dv">0</span>,</span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Very Poor&#39;</span>:<span class="dv">1</span>,</span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Poor&#39;</span>:<span class="dv">2</span>,</span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Fair&#39;</span>:<span class="dv">3</span>,</span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Average&#39;</span>:<span class="dv">4</span>,</span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Good&#39;</span>:<span class="dv">5</span>,</span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Very Good&#39;</span>:<span class="dv">6</span>,</span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Excellent&#39;</span>:<span class="dv">7</span></span>
+<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">&#39;building_condition&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;building_condition&#39;</span>].<span class="bu">map</span>(bc_map)</span>
+<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a>    grade_map <span class="op">=</span> {</span>
+<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;E-&#39;</span>:<span class="fl">1.3</span>,</span>
+<span id="cb3-69"><a href="#cb3-69" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;E&#39;</span>:<span class="fl">1.6</span>,</span>
+<span id="cb3-70"><a href="#cb3-70" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;E+&#39;</span>:<span class="fl">1.9</span>,</span>
+<span id="cb3-71"><a href="#cb3-71" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;D-&#39;</span>:<span class="fl">2.3</span>,</span>
+<span id="cb3-72"><a href="#cb3-72" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;D&#39;</span>:<span class="fl">2.6</span>,</span>
+<span id="cb3-73"><a href="#cb3-73" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;D+&#39;</span>:<span class="fl">2.9</span>,</span>
+<span id="cb3-74"><a href="#cb3-74" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;C-&#39;</span>:<span class="fl">3.3</span>,</span>
+<span id="cb3-75"><a href="#cb3-75" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;C&#39;</span>:<span class="fl">3.6</span>,</span>
+<span id="cb3-76"><a href="#cb3-76" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;C+&#39;</span>:<span class="fl">3.9</span>,</span>
+<span id="cb3-77"><a href="#cb3-77" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;B-&#39;</span>:<span class="fl">4.3</span>,</span>
+<span id="cb3-78"><a href="#cb3-78" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;B&#39;</span>:<span class="fl">4.6</span>,</span>
+<span id="cb3-79"><a href="#cb3-79" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;B+&#39;</span>:<span class="fl">4.9</span>,</span>
+<span id="cb3-80"><a href="#cb3-80" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;A-&#39;</span>:<span class="fl">5.3</span>,</span>
+<span id="cb3-81"><a href="#cb3-81" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;A&#39;</span>:<span class="fl">5.6</span>,</span>
+<span id="cb3-82"><a href="#cb3-82" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;A+&#39;</span>:<span class="fl">5.9</span>,</span>
+<span id="cb3-83"><a href="#cb3-83" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;X-&#39;</span>:<span class="fl">6.3</span>,</span>
+<span id="cb3-84"><a href="#cb3-84" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;X&#39;</span>:<span class="fl">6.6</span>,</span>
+<span id="cb3-85"><a href="#cb3-85" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;X+&#39;</span>:<span class="fl">6.9</span></span>
+<span id="cb3-86"><a href="#cb3-86" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb3-87"><a href="#cb3-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-88"><a href="#cb3-88" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">&#39;grade&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;grade&#39;</span>].<span class="bu">map</span>(grade_map)</span>
+<span id="cb3-89"><a href="#cb3-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-90"><a href="#cb3-90" aria-hidden="true" tabindex="-1"></a>    pc_map <span class="op">=</span> {</span>
+<span id="cb3-91"><a href="#cb3-91" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Unsound&#39;</span>:<span class="dv">0</span>,</span>
+<span id="cb3-92"><a href="#cb3-92" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Very Poor&#39;</span>:<span class="dv">1</span>,</span>
+<span id="cb3-93"><a href="#cb3-93" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Poor&#39;</span>:<span class="dv">2</span>,</span>
+<span id="cb3-94"><a href="#cb3-94" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Fair&#39;</span>:<span class="dv">3</span>,</span>
+<span id="cb3-95"><a href="#cb3-95" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Average&#39;</span>:<span class="dv">4</span>,</span>
+<span id="cb3-96"><a href="#cb3-96" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Good&#39;</span>:<span class="dv">5</span>,</span>
+<span id="cb3-97"><a href="#cb3-97" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Very Good&#39;</span>:<span class="dv">6</span>,</span>
+<span id="cb3-98"><a href="#cb3-98" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Excellent&#39;</span>:<span class="dv">7</span></span>
+<span id="cb3-99"><a href="#cb3-99" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb3-100"><a href="#cb3-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-101"><a href="#cb3-101" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">&#39;physical_condition&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;physical_condition&#39;</span>].<span class="bu">map</span>(pc_map)</span>
+<span id="cb3-102"><a href="#cb3-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-103"><a href="#cb3-103" aria-hidden="true" tabindex="-1"></a>    df.loc[df[<span class="st">&#39;foundation_type&#39;</span>] <span class="op">==</span> <span class="st">&#39;Basement and Basement&#39;</span>, <span class="st">&#39;foundation_type&#39;</span>] <span class="op">=</span> <span class="st">&#39;Basement&#39;</span></span>
+<span id="cb3-104"><a href="#cb3-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-105"><a href="#cb3-105" aria-hidden="true" tabindex="-1"></a>    df.loc[(df[<span class="st">&#39;foundation_type&#39;</span>]<span class="op">==</span><span class="st">&#39;Basement and Slab&#39;</span>)<span class="op">|</span>(df[<span class="st">&#39;foundation_type&#39;</span>]<span class="op">==</span><span class="st">&#39;Crawl Space and Slab&#39;</span>)<span class="op">|</span>(df[<span class="st">&#39;foundation_type&#39;</span>]<span class="op">==</span><span class="st">&#39;Basement and Crawl Space&#39;</span>)<span class="op">|</span></span>
+<span id="cb3-106"><a href="#cb3-106" aria-hidden="true" tabindex="-1"></a>           (df[<span class="st">&#39;foundation_type&#39;</span>]<span class="op">==</span><span class="st">&#39;Basement and Pier and Beam&#39;</span>)<span class="op">|</span>(df[<span class="st">&#39;foundation_type&#39;</span>]<span class="op">==</span><span class="st">&#39;Pier and Beam&#39;</span>)<span class="op">|</span></span>
+<span id="cb3-107"><a href="#cb3-107" aria-hidden="true" tabindex="-1"></a>           (df[<span class="st">&#39;foundation_type&#39;</span>]<span class="op">==</span><span class="st">&#39;Pier and Beam and Pier and Beam&#39;</span>)<span class="op">|</span>(df[<span class="st">&#39;foundation_type&#39;</span>]<span class="op">==</span><span class="st">&#39;Pier and Beam and Slab&#39;</span>),<span class="st">&#39;foundation_type&#39;</span>] <span class="op">=</span> <span class="st">&#39;Mixed&#39;</span></span>
+<span id="cb3-108"><a href="#cb3-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-109"><a href="#cb3-109" aria-hidden="true" tabindex="-1"></a>    dummies <span class="op">=</span> pd.get_dummies(df[<span class="st">&#39;foundation_type&#39;</span>], prefix<span class="op">=</span><span class="st">&#39;foundation&#39;</span>).astype(<span class="st">&#39;Int64&#39;</span>)</span>
+<span id="cb3-110"><a href="#cb3-110" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pd.concat([df, dummies], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb3-111"><a href="#cb3-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-112"><a href="#cb3-112" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> group_rare_categories(df, <span class="st">&#39;exterior_walls&#39;</span>, threshold<span class="op">=</span><span class="dv">1000</span>, new_label<span class="op">=</span><span class="st">&#39;Other&#39;</span>)</span>
+<span id="cb3-113"><a href="#cb3-113" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-114"><a href="#cb3-114" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Keywords to extract</span></span>
+<span id="cb3-115"><a href="#cb3-115" aria-hidden="true" tabindex="-1"></a>    keywords <span class="op">=</span> [</span>
+<span id="cb3-116"><a href="#cb3-116" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Brick Veneer&#39;</span>,</span>
+<span id="cb3-117"><a href="#cb3-117" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Brick Masonry&#39;</span>,</span>
+<span id="cb3-118"><a href="#cb3-118" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Concrete Block&#39;</span>,</span>
+<span id="cb3-119"><a href="#cb3-119" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Vinyl&#39;</span>,</span>
+<span id="cb3-120"><a href="#cb3-120" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Stucco&#39;</span>,</span>
+<span id="cb3-121"><a href="#cb3-121" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Stone&#39;</span>,</span>
+<span id="cb3-122"><a href="#cb3-122" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;Other&#39;</span></span>
+<span id="cb3-123"><a href="#cb3-123" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb3-124"><a href="#cb3-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-125"><a href="#cb3-125" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Create 1/0 dummy columns based on substring presence</span></span>
+<span id="cb3-126"><a href="#cb3-126" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> key <span class="kw">in</span> keywords:</span>
+<span id="cb3-127"><a href="#cb3-127" aria-hidden="true" tabindex="-1"></a>        col_name <span class="op">=</span> key.replace(<span class="st">&#39; &#39;</span>, <span class="st">&#39;_&#39;</span>).lower()  <span class="co"># e.g., &#39;Brick Veneer&#39; → &#39;brick_veneer&#39;</span></span>
+<span id="cb3-128"><a href="#cb3-128" aria-hidden="true" tabindex="-1"></a>        df[col_name] <span class="op">=</span> df[<span class="st">&#39;exterior_walls&#39;</span>].fillna(<span class="st">&#39;&#39;</span>).<span class="bu">str</span>.contains(key).astype(<span class="st">&#39;int8&#39;</span>)</span>
+<span id="cb3-129"><a href="#cb3-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-130"><a href="#cb3-130" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df.drop([<span class="st">&#39;exterior_walls&#39;</span>,<span class="st">&#39;foundation_type&#39;</span>],axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb3-131"><a href="#cb3-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-132"><a href="#cb3-132" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df</span>
+<span id="cb3-133"><a href="#cb3-133" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-134"><a href="#cb3-134" aria-hidden="true" tabindex="-1"></a><span class="co"># appends new accounts to running list of unique accounts</span></span>
+<span id="cb3-135"><a href="#cb3-135" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> append_new_accts(df_base, df_new, year):</span>
+<span id="cb3-136"><a href="#cb3-136" aria-hidden="true" tabindex="-1"></a>    existing_accts <span class="op">=</span> <span class="bu">set</span>(df_base[<span class="st">&#39;acct&#39;</span>])</span>
+<span id="cb3-137"><a href="#cb3-137" aria-hidden="true" tabindex="-1"></a>    new_entries <span class="op">=</span> df_new[<span class="op">~</span>df_new[<span class="st">&#39;acct&#39;</span>].isin(existing_accts)][[<span class="st">&#39;acct&#39;</span>]].copy()</span>
+<span id="cb3-138"><a href="#cb3-138" aria-hidden="true" tabindex="-1"></a>    new_entries[<span class="st">&#39;year&#39;</span>] <span class="op">=</span> year</span>
+<span id="cb3-139"><a href="#cb3-139" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pd.concat([df_base,new_entries],ignore_index<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb3-140"><a href="#cb3-140" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-141"><a href="#cb3-141" aria-hidden="true" tabindex="-1"></a><span class="co"># Function to count occurrances of a specific string value</span></span>
+<span id="cb3-142"><a href="#cb3-142" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> count_values(df,value:<span class="bu">str</span>):</span>
+<span id="cb3-143"><a href="#cb3-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-144"><a href="#cb3-144" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb3-145"><a href="#cb3-145" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns printout of whatever character you&#39;re looking for across the dataset</span></span>
+<span id="cb3-146"><a href="#cb3-146" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb3-147"><a href="#cb3-147" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-148"><a href="#cb3-148" aria-hidden="true" tabindex="-1"></a>    total_rows <span class="op">=</span> <span class="bu">len</span>(df)</span>
+<span id="cb3-149"><a href="#cb3-149" aria-hidden="true" tabindex="-1"></a>    val_counts <span class="op">=</span> []</span>
+<span id="cb3-150"><a href="#cb3-150" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-151"><a href="#cb3-151" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> col <span class="kw">in</span> df.columns:</span>
+<span id="cb3-152"><a href="#cb3-152" aria-hidden="true" tabindex="-1"></a>        count <span class="op">=</span> (df[col] <span class="op">==</span> value).<span class="bu">sum</span>()</span>
+<span id="cb3-153"><a href="#cb3-153" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> count <span class="op">&gt;</span> <span class="dv">0</span>:</span>
+<span id="cb3-154"><a href="#cb3-154" aria-hidden="true" tabindex="-1"></a>            percent <span class="op">=</span> (count <span class="op">/</span> total_rows) <span class="op">*</span> <span class="dv">100</span></span>
+<span id="cb3-155"><a href="#cb3-155" aria-hidden="true" tabindex="-1"></a>            val_counts.append((col, count, percent))</span>
+<span id="cb3-156"><a href="#cb3-156" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-157"><a href="#cb3-157" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sort by count descending</span></span>
+<span id="cb3-158"><a href="#cb3-158" aria-hidden="true" tabindex="-1"></a>    val_counts.sort(key<span class="op">=</span><span class="kw">lambda</span> x: x[<span class="dv">1</span>], reverse<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb3-159"><a href="#cb3-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-160"><a href="#cb3-160" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Print results</span></span>
+<span id="cb3-161"><a href="#cb3-161" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span><span class="st">&#39;Column&#39;</span><span class="sc">:&lt;30}</span><span class="ss"> </span><span class="sc">{</span><span class="st">&#39;? Count&#39;</span><span class="sc">:&gt;15}</span><span class="ss"> </span><span class="sc">{</span><span class="st">&#39;</span><span class="sc">% o</span><span class="st">f Rows&#39;</span><span class="sc">:&gt;12}</span><span class="ss">&quot;</span>)</span>
+<span id="cb3-162"><a href="#cb3-162" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;-&quot;</span> <span class="op">*</span> <span class="dv">60</span>)</span>
+<span id="cb3-163"><a href="#cb3-163" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> col, count, percent <span class="kw">in</span> val_counts:</span>
+<span id="cb3-164"><a href="#cb3-164" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>col<span class="sc">:&lt;30}</span><span class="ss"> </span><span class="sc">{</span>count<span class="sc">:&gt;15,}</span><span class="ss"> </span><span class="sc">{</span>percent<span class="sc">:&gt;11.2f}</span><span class="ss">%&quot;</span>)</span>
+<span id="cb3-165"><a href="#cb3-165" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb3-166"><a href="#cb3-166" aria-hidden="true" tabindex="-1"></a><span class="co"># function to count NULLs in the columns of a df</span></span>
+<span id="cb3-167"><a href="#cb3-167" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> count_nulls(df, top_n<span class="op">=</span><span class="dv">10</span>):</span>
+<span id="cb3-168"><a href="#cb3-168" aria-hidden="true" tabindex="-1"></a>    total_rows <span class="op">=</span> <span class="bu">len</span>(df)</span>
+<span id="cb3-169"><a href="#cb3-169" aria-hidden="true" tabindex="-1"></a>    null_counts <span class="op">=</span> []</span>
+<span id="cb3-170"><a href="#cb3-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-171"><a href="#cb3-171" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> col <span class="kw">in</span> df.columns:</span>
+<span id="cb3-172"><a href="#cb3-172" aria-hidden="true" tabindex="-1"></a>        count <span class="op">=</span> df[col].isna().<span class="bu">sum</span>()</span>
+<span id="cb3-173"><a href="#cb3-173" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> count <span class="op">&gt;</span> <span class="dv">0</span>:</span>
+<span id="cb3-174"><a href="#cb3-174" aria-hidden="true" tabindex="-1"></a>            percent <span class="op">=</span> (count <span class="op">/</span> total_rows) <span class="op">*</span> <span class="dv">100</span></span>
+<span id="cb3-175"><a href="#cb3-175" aria-hidden="true" tabindex="-1"></a>            null_counts.append((col, count, percent))</span>
+<span id="cb3-176"><a href="#cb3-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-177"><a href="#cb3-177" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sort by null count descending</span></span>
+<span id="cb3-178"><a href="#cb3-178" aria-hidden="true" tabindex="-1"></a>    null_counts.sort(key<span class="op">=</span><span class="kw">lambda</span> x: x[<span class="dv">1</span>], reverse<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb3-179"><a href="#cb3-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-180"><a href="#cb3-180" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Print total number of columns with NULLs</span></span>
+<span id="cb3-181"><a href="#cb3-181" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Total number of columns with NULLs: </span><span class="sc">{</span><span class="bu">len</span>(null_counts)<span class="sc">}</span><span class="ch">\n</span><span class="ss">&quot;</span>)</span>
+<span id="cb3-182"><a href="#cb3-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-183"><a href="#cb3-183" aria-hidden="true" tabindex="-1"></a>    <span class="co"># If there are NULLs, display formatted table</span></span>
+<span id="cb3-184"><a href="#cb3-184" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> null_counts:</span>
+<span id="cb3-185"><a href="#cb3-185" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span><span class="st">&#39;Column&#39;</span><span class="sc">:&lt;30}</span><span class="ss"> </span><span class="sc">{</span><span class="st">&#39;NULL Count&#39;</span><span class="sc">:&gt;15}</span><span class="ss"> </span><span class="sc">{</span><span class="st">&#39;</span><span class="sc">% o</span><span class="st">f Rows&#39;</span><span class="sc">:&gt;12}</span><span class="ss">&quot;</span>)</span>
+<span id="cb3-186"><a href="#cb3-186" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;-&quot;</span> <span class="op">*</span> <span class="dv">60</span>)</span>
+<span id="cb3-187"><a href="#cb3-187" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> col, count, percent <span class="kw">in</span> null_counts[:top_n]:</span>
+<span id="cb3-188"><a href="#cb3-188" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>col<span class="sc">:&lt;30}</span><span class="ss"> </span><span class="sc">{</span>count<span class="sc">:&gt;15,}</span><span class="ss"> </span><span class="sc">{</span>percent<span class="sc">:&gt;11.2f}</span><span class="ss">%&quot;</span>)</span>
+<span id="cb3-189"><a href="#cb3-189" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb3-190"><a href="#cb3-190" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;No NULLs found in the DataFrame.&quot;</span>)</span>
+<span id="cb3-191"><a href="#cb3-191" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-192"><a href="#cb3-192" aria-hidden="true" tabindex="-1"></a><span class="co"># create model printout</span></span>
+<span id="cb3-193"><a href="#cb3-193" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model_scores():</span>
+<span id="cb3-194"><a href="#cb3-194" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-195"><a href="#cb3-195" aria-hidden="true" tabindex="-1"></a>    data <span class="op">=</span> {</span>
+<span id="cb3-196"><a href="#cb3-196" aria-hidden="true" tabindex="-1"></a>      <span class="st">&#39;Model&#39;</span>: [</span>
+<span id="cb3-197"><a href="#cb3-197" aria-hidden="true" tabindex="-1"></a>          <span class="st">&#39;OLS&#39;</span>, <span class="st">&#39;LASSO&#39;</span>, <span class="st">&#39;Ridge&#39;</span>, <span class="st">&#39;RidgeCV&#39;</span>,</span>
+<span id="cb3-198"><a href="#cb3-198" aria-hidden="true" tabindex="-1"></a>          <span class="st">&#39;XGBR&#39;</span>,<span class="st">&#39;XGBR_GS&#39;</span>,<span class="st">&#39;LGBM&#39;</span>,<span class="st">&#39;Ensemble&#39;</span>,</span>
+<span id="cb3-199"><a href="#cb3-199" aria-hidden="true" tabindex="-1"></a>          <span class="st">&#39;Stack_1&#39;</span>,<span class="st">&#39;Stack_2&#39;</span>,<span class="st">&#39;Stack_3&#39;</span></span>
+<span id="cb3-200"><a href="#cb3-200" aria-hidden="true" tabindex="-1"></a>          ],</span>
+<span id="cb3-201"><a href="#cb3-201" aria-hidden="true" tabindex="-1"></a>      <span class="st">&#39;Train RMSE&#39;</span>: [</span>
+<span id="cb3-202"><a href="#cb3-202" aria-hidden="true" tabindex="-1"></a>          <span class="fl">42103.47</span>, <span class="fl">48757.61</span>, <span class="fl">42101.38</span>, <span class="fl">42101.38</span>,</span>
+<span id="cb3-203"><a href="#cb3-203" aria-hidden="true" tabindex="-1"></a>          <span class="fl">24121.34</span>, <span class="fl">40700.99</span>, <span class="fl">42000.00</span>, <span class="fl">41068.07</span>,</span>
+<span id="cb3-204"><a href="#cb3-204" aria-hidden="true" tabindex="-1"></a>          <span class="fl">43313.99</span>, <span class="fl">37393.21</span>, <span class="fl">33441.12</span></span>
+<span id="cb3-205"><a href="#cb3-205" aria-hidden="true" tabindex="-1"></a>          ],</span>
+<span id="cb3-206"><a href="#cb3-206" aria-hidden="true" tabindex="-1"></a>      <span class="st">&#39;Test RMSE (Public)&#39;</span>: [</span>
+<span id="cb3-207"><a href="#cb3-207" aria-hidden="true" tabindex="-1"></a>          <span class="fl">48478.35</span>, <span class="fl">46676.85</span>, <span class="fl">48857.30</span>, <span class="fl">47080.00</span>,</span>
+<span id="cb3-208"><a href="#cb3-208" aria-hidden="true" tabindex="-1"></a>          <span class="fl">42143.88</span>, <span class="fl">43196.91</span>, <span class="fl">170263.72</span>, <span class="fl">44709.20</span>,</span>
+<span id="cb3-209"><a href="#cb3-209" aria-hidden="true" tabindex="-1"></a>          <span class="fl">43589.06</span>, <span class="fl">42896.77</span>, <span class="fl">45241.33</span></span>
+<span id="cb3-210"><a href="#cb3-210" aria-hidden="true" tabindex="-1"></a>          ],</span>
+<span id="cb3-211"><a href="#cb3-211" aria-hidden="true" tabindex="-1"></a>      <span class="st">&#39;Test RMSE (Private)&#39;</span>: [</span>
+<span id="cb3-212"><a href="#cb3-212" aria-hidden="true" tabindex="-1"></a>          <span class="fl">46903.05</span>, <span class="fl">45345.82</span>, <span class="fl">47746.13</span>, <span class="fl">45075.56</span>,</span>
+<span id="cb3-213"><a href="#cb3-213" aria-hidden="true" tabindex="-1"></a>          <span class="fl">43759.64</span>, <span class="fl">44054.83</span>, <span class="fl">174621.3</span>, <span class="fl">44458.82</span>,</span>
+<span id="cb3-214"><a href="#cb3-214" aria-hidden="true" tabindex="-1"></a>          <span class="fl">44946.14</span>, <span class="fl">44380.56</span>, <span class="fl">44128.42</span></span>
+<span id="cb3-215"><a href="#cb3-215" aria-hidden="true" tabindex="-1"></a>          ]</span>
+<span id="cb3-216"><a href="#cb3-216" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb3-217"><a href="#cb3-217" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-218"><a href="#cb3-218" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pd.DataFrame(data)</span>
+<span id="cb3-219"><a href="#cb3-219" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-220"><a href="#cb3-220" aria-hidden="true" tabindex="-1"></a>    df_melted <span class="op">=</span> df.melt(id_vars<span class="op">=</span><span class="st">&#39;Model&#39;</span>, value_vars<span class="op">=</span>[<span class="st">&#39;Train RMSE&#39;</span>, <span class="st">&#39;Test RMSE (Public)&#39;</span>, <span class="st">&#39;Test RMSE (Private)&#39;</span>],</span>
+<span id="cb3-221"><a href="#cb3-221" aria-hidden="true" tabindex="-1"></a>                    var_name<span class="op">=</span><span class="st">&#39;Metric&#39;</span>, value_name<span class="op">=</span><span class="st">&#39;RMSE&#39;</span>)</span>
+<span id="cb3-222"><a href="#cb3-222" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-223"><a href="#cb3-223" aria-hidden="true" tabindex="-1"></a>    sns.<span class="bu">set</span>(style<span class="op">=</span><span class="st">&quot;whitegrid&quot;</span>, rc<span class="op">=</span>{<span class="st">&quot;axes.facecolor&quot;</span>: <span class="st">&quot;#ebebeb&quot;</span>})  <span class="co"># slightly grayer</span></span>
+<span id="cb3-224"><a href="#cb3-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-225"><a href="#cb3-225" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">6</span>))</span>
+<span id="cb3-226"><a href="#cb3-226" aria-hidden="true" tabindex="-1"></a>    <span class="co"># sns.set(style=&quot;whitegrid&quot;, rc={&quot;axes.facecolor&quot;: &quot;#d3d3d3&quot;})  # slightly darker gray</span></span>
+<span id="cb3-227"><a href="#cb3-227" aria-hidden="true" tabindex="-1"></a>    sns.<span class="bu">set</span>(style<span class="op">=</span><span class="st">&quot;whitegrid&quot;</span>, rc<span class="op">=</span>{</span>
+<span id="cb3-228"><a href="#cb3-228" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;axes.facecolor&quot;</span>: <span class="st">&quot;#d3d3d3&quot;</span>,    <span class="co"># inside the plot</span></span>
+<span id="cb3-229"><a href="#cb3-229" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;figure.facecolor&quot;</span>: <span class="st">&quot;#d3d3d3&quot;</span>,  <span class="co"># everything around it</span></span>
+<span id="cb3-230"><a href="#cb3-230" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;grid.color&quot;</span>: <span class="st">&quot;black&quot;</span>,</span>
+<span id="cb3-231"><a href="#cb3-231" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;grid.linewidth&quot;</span>: <span class="fl">0.5</span></span>
+<span id="cb3-232"><a href="#cb3-232" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb3-233"><a href="#cb3-233" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-234"><a href="#cb3-234" aria-hidden="true" tabindex="-1"></a>    bar <span class="op">=</span> sns.barplot(data<span class="op">=</span>df_melted, x<span class="op">=</span><span class="st">&#39;Model&#39;</span>, y<span class="op">=</span><span class="st">&#39;RMSE&#39;</span>, hue<span class="op">=</span><span class="st">&#39;Metric&#39;</span>, palette<span class="op">=</span><span class="st">&#39;mako&#39;</span>)</span>
+<span id="cb3-235"><a href="#cb3-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-236"><a href="#cb3-236" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Add value labels</span></span>
+<span id="cb3-237"><a href="#cb3-237" aria-hidden="true" tabindex="-1"></a>    <span class="co"># for p in bar.patches:</span></span>
+<span id="cb3-238"><a href="#cb3-238" aria-hidden="true" tabindex="-1"></a>    <span class="co">#     height = p.get_height()</span></span>
+<span id="cb3-239"><a href="#cb3-239" aria-hidden="true" tabindex="-1"></a>    <span class="co">#     if not pd.isna(height):</span></span>
+<span id="cb3-240"><a href="#cb3-240" aria-hidden="true" tabindex="-1"></a>    <span class="co">#         bar.annotate(f&#39;{height:,.0f}&#39;,</span></span>
+<span id="cb3-241"><a href="#cb3-241" aria-hidden="true" tabindex="-1"></a>    <span class="co">#                      (p.get_x() + p.get_width() / 2, height),</span></span>
+<span id="cb3-242"><a href="#cb3-242" aria-hidden="true" tabindex="-1"></a>    <span class="co">#                      ha=&#39;center&#39;, va=&#39;bottom&#39;, fontsize=9)</span></span>
+<span id="cb3-243"><a href="#cb3-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-244"><a href="#cb3-244" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Add horizontal line for best (lowest) Test RMSE</span></span>
+<span id="cb3-245"><a href="#cb3-245" aria-hidden="true" tabindex="-1"></a>    min_test_rmse_pub <span class="op">=</span> df[<span class="st">&#39;Test RMSE (Public)&#39;</span>].<span class="bu">min</span>()</span>
+<span id="cb3-246"><a href="#cb3-246" aria-hidden="true" tabindex="-1"></a>    plt.axhline(min_test_rmse_pub, linestyle<span class="op">=</span><span class="st">&#39;--&#39;</span>, color<span class="op">=</span><span class="st">&#39;darkgreen&#39;</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, label<span class="op">=</span><span class="st">&#39;Best Test RMSE (Public) = 42,144&#39;</span>)</span>
+<span id="cb3-247"><a href="#cb3-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-248"><a href="#cb3-248" aria-hidden="true" tabindex="-1"></a>    <span class="co"># same but for private leaderboard</span></span>
+<span id="cb3-249"><a href="#cb3-249" aria-hidden="true" tabindex="-1"></a>    min_test_rmse_priv <span class="op">=</span> df[<span class="st">&#39;Test RMSE (Private)&#39;</span>].<span class="bu">min</span>()</span>
+<span id="cb3-250"><a href="#cb3-250" aria-hidden="true" tabindex="-1"></a>    plt.axhline(min_test_rmse_priv, linestyle<span class="op">=</span><span class="st">&#39;--&#39;</span>, color<span class="op">=</span><span class="st">&#39;darkblue&#39;</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, label<span class="op">=</span><span class="st">&#39;Best Test RMSE (Private) = 43,760&#39;</span>)</span>
+<span id="cb3-251"><a href="#cb3-251" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-252"><a href="#cb3-252" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>, color<span class="op">=</span><span class="st">&#39;black&#39;</span>, linewidth<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb3-253"><a href="#cb3-253" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-254"><a href="#cb3-254" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Bold titles and labels</span></span>
+<span id="cb3-255"><a href="#cb3-255" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb3-256"><a href="#cb3-256" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Train vs Test RMSE by Model&quot;</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>, fontsize<span class="op">=</span><span class="dv">14</span>)</span>
+<span id="cb3-257"><a href="#cb3-257" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;RMSE&quot;</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb3-258"><a href="#cb3-258" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Model&quot;</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb3-259"><a href="#cb3-259" aria-hidden="true" tabindex="-1"></a>    plt.xticks(rotation<span class="op">=</span><span class="dv">45</span>, ha<span class="op">=</span><span class="st">&#39;right&#39;</span>)</span>
+<span id="cb3-260"><a href="#cb3-260" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb3-261"><a href="#cb3-261" aria-hidden="true" tabindex="-1"></a>    plt.show()<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
 <p>Read in the data from the website:</p>
+<div id="96a81dbf" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># read in from prof&#39;s website</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>BUILDING_DETAILS_2015 <span class="op">=</span> read_gh(URL, <span class="st">&quot;building_details_2015.csv.gz&quot;</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>BUILDING_DETAILS_2016 <span class="op">=</span> read_gh(URL, <span class="st">&quot;building_details_2016.csv.gz&quot;</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>BUILDING_DETAILS_2017 <span class="op">=</span> read_gh(URL, <span class="st">&quot;building_details_2017.csv.gz&quot;</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>BUILDING_DETAILS_2018 <span class="op">=</span> read_gh(URL, <span class="st">&quot;building_details_2018.csv.gz&quot;</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>BUILDING_DETAILS_2019 <span class="op">=</span> read_gh(URL, <span class="st">&quot;building_details_2019.csv.gz&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 <p>Clean DFs using function:</p>
+<div id="1b719891" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>df15 <span class="op">=</span> clean_building_dfs(BUILDING_DETAILS_2015)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>df16 <span class="op">=</span> clean_building_dfs(BUILDING_DETAILS_2016)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>df17 <span class="op">=</span> clean_building_dfs(BUILDING_DETAILS_2017)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>df18 <span class="op">=</span> clean_building_dfs(BUILDING_DETAILS_2018)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>df19 <span class="op">=</span> clean_building_dfs(BUILDING_DETAILS_2019)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section>
 <section id="b.-data-preparation" class="level2">
 <h2 class="anchored" data-anchor-id="b.-data-preparation">3b. Data Preparation</h2>
 <p>With the data read in, the next part focuses on cleaning and normalizing the data for EDA and modeling.</p>
 <p>The cells have been folded or hidden for readability.</p>
-<div id="c51871b3" class="cell" data-execution_count="8">
+<div id="aa889136" class="cell" data-execution_count="6">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>df_long <span class="op">=</span> df15[[<span class="st">&#39;acct&#39;</span>]].copy()</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>df_long[<span class="st">&#39;year&#39;</span>] <span class="op">=</span> <span class="dv">2015</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> df, yr <span class="kw">in</span> <span class="bu">zip</span>([df16, df17, df18, df19], [<span class="dv">2016</span>, <span class="dv">2017</span>, <span class="dv">2018</span>, <span class="dv">2019</span>]):</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    df_long <span class="op">=</span> append_new_accts(df_long, df, yr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div id="8cd078e9" class="cell" data-execution_count="7">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>static_cols <span class="op">=</span> [</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;year_built&#39;</span>,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;foundation_Basement&#39;</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;foundation_Crawl Space&#39;</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;foundation_Slab&#39;</span>,</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;foundation_Mixed&#39;</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>year_df_map <span class="op">=</span> {</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="dv">2015</span>: df15,</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="dv">2016</span>: df16,</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="dv">2017</span>: df17,</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="dv">2018</span>: df18,</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="dv">2019</span>: df19</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> col <span class="kw">in</span> static_cols:</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    df_long[col] <span class="op">=</span> np.nan</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> year, df_source <span class="kw">in</span> year_df_map.items():</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Get only accounts from df_long for that year</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    acct_subset <span class="op">=</span> df_long[df_long[<span class="st">&#39;year&#39;</span>] <span class="op">==</span> year][[<span class="st">&#39;acct&#39;</span>]]</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Pull static columns from the matching year&#39;s DataFrame</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    df_extract <span class="op">=</span> df_source[[<span class="st">&#39;acct&#39;</span>] <span class="op">+</span> static_cols]</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Merge on acct (only updates matching rows)</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    df_long <span class="op">=</span> df_long.merge(df_extract, on<span class="op">=</span><span class="st">&#39;acct&#39;</span>, how<span class="op">=</span><span class="st">&#39;left&#39;</span>, suffixes<span class="op">=</span>(<span class="st">&#39;&#39;</span>, <span class="st">&#39;_tmp&#39;</span>))</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Only assign static values where year matches (to avoid overwriting)</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> col <span class="kw">in</span> static_cols:</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>        df_long.loc[df_long[<span class="st">&#39;year&#39;</span>] <span class="op">==</span> year, col] <span class="op">=</span> df_long.loc[df_long[<span class="st">&#39;year&#39;</span>] <span class="op">==</span> year, <span class="ss">f&#39;</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">_tmp&#39;</span>]</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>        df_long.drop(columns<span class="op">=</span>[<span class="ss">f&#39;</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">_tmp&#39;</span>], inplace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>all_columns <span class="op">=</span> df15.columns.tolist()</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>exclude_cols <span class="op">=</span> [<span class="st">&#39;acct&#39;</span>, <span class="st">&#39;year&#39;</span>] <span class="op">+</span> static_cols  <span class="co"># static_cols from before</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>first_cols <span class="op">=</span> [col <span class="cf">for</span> col <span class="kw">in</span> all_columns <span class="cf">if</span> col <span class="kw">not</span> <span class="kw">in</span> exclude_cols]</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> year, df_source <span class="kw">in</span> year_df_map.items():</span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>    acct_subset <span class="op">=</span> df_long[df_long[<span class="st">&#39;year&#39;</span>] <span class="op">==</span> year][[<span class="st">&#39;acct&#39;</span>]]</span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Pull and rename first_cols → tmp cols</span></span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>    df_extract <span class="op">=</span> df_source[[<span class="st">&#39;acct&#39;</span>] <span class="op">+</span> first_cols].copy()</span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>    df_extract.rename(columns<span class="op">=</span>{col: <span class="ss">f&quot;</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">_tmp&quot;</span> <span class="cf">for</span> col <span class="kw">in</span> first_cols}, inplace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Merge by acct</span></span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>    df_long <span class="op">=</span> df_long.merge(df_extract, on<span class="op">=</span><span class="st">&#39;acct&#39;</span>, how<span class="op">=</span><span class="st">&#39;left&#39;</span>)</span>
+<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Assign year-specific values</span></span>
+<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> col <span class="kw">in</span> first_cols:</span>
+<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>        tmp_col <span class="op">=</span> <span class="ss">f&#39;</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">_tmp&#39;</span></span>
+<span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>        new_col <span class="op">=</span> <span class="ss">f&#39;first_</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">&#39;</span></span>
+<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> new_col <span class="kw">not</span> <span class="kw">in</span> df_long:</span>
+<span id="cb7-55"><a href="#cb7-55" aria-hidden="true" tabindex="-1"></a>            df_long[new_col] <span class="op">=</span> np.nan</span>
+<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a>        df_long.loc[df_long[<span class="st">&#39;year&#39;</span>] <span class="op">==</span> year, new_col] <span class="op">=</span> df_long.loc[df_long[<span class="st">&#39;year&#39;</span>] <span class="op">==</span> year, tmp_col]</span>
+<span id="cb7-58"><a href="#cb7-58" aria-hidden="true" tabindex="-1"></a>        df_long.drop(columns<span class="op">=</span>[tmp_col], inplace<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div id="acf1fe81" class="cell" data-execution_count="8">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize a set to track seen accounts</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize a set to track seen accounts</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>seen_accts <span class="op">=</span> <span class="bu">set</span>()</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Start with a copy of df_long to add &#39;end_&#39; columns to</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>df_long_end <span class="op">=</span> df_long.copy()</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Create placeholders for all end_ columns</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> col <span class="kw">in</span> first_cols:</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    df_long_end[<span class="ss">f&#39;end_</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">&#39;</span>] <span class="op">=</span> np.nan</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Loop in reverse order: 2019 -&gt; 2015</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> year, df_source <span class="kw">in</span> <span class="bu">reversed</span>(<span class="bu">list</span>(year_df_map.items())):</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Find accounts in this year that haven&#39;t been assigned yet</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    df_year_accts <span class="op">=</span> df_source[[<span class="st">&#39;acct&#39;</span>]].copy()</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    new_accts <span class="op">=</span> df_year_accts[<span class="op">~</span>df_year_accts[<span class="st">&#39;acct&#39;</span>].isin(seen_accts)]</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Keep track of which accounts we&#39;ve already assigned from later years</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    seen_accts.update(new_accts[<span class="st">&#39;acct&#39;</span>])</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Pull and rename cols → tmp</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    df_extract <span class="op">=</span> df_source[[<span class="st">&#39;acct&#39;</span>] <span class="op">+</span> first_cols].copy()</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    df_extract.rename(columns<span class="op">=</span>{col: <span class="ss">f&#39;</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">_tmp&#39;</span> <span class="cf">for</span> col <span class="kw">in</span> first_cols}, inplace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Merge with current df_long_end</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    df_long_end <span class="op">=</span> df_long_end.merge(df_extract, on<span class="op">=</span><span class="st">&#39;acct&#39;</span>, how<span class="op">=</span><span class="st">&#39;left&#39;</span>)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Assign values for those just-seen accounts</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> col <span class="kw">in</span> first_cols:</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>        tmp_col <span class="op">=</span> <span class="ss">f&#39;</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">_tmp&#39;</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>        end_col <span class="op">=</span> <span class="ss">f&#39;end_</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">&#39;</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>        mask <span class="op">=</span> df_long_end[<span class="st">&#39;acct&#39;</span>].isin(new_accts[<span class="st">&#39;acct&#39;</span>])</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>        df_long_end.loc[mask, end_col] <span class="op">=</span> df_long_end.loc[mask, tmp_col]</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>        df_long_end.drop(columns<span class="op">=</span>[tmp_col], inplace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> col <span class="kw">in</span> first_cols:</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>    start_col <span class="op">=</span> <span class="ss">f&#39;first_</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">&#39;</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>    end_col <span class="op">=</span> <span class="ss">f&#39;end_</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">&#39;</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>    delta_col <span class="op">=</span> <span class="ss">f&#39;delta_</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">&#39;</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>    df_long_end[delta_col] <span class="op">=</span> df_long_end[end_col] <span class="op">-</span> df_long_end[start_col]</span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Num of unique accounts: </span><span class="sc">{</span>df_long_end[<span class="st">&#39;acct&#39;</span>]<span class="sc">.</span>nunique()<span class="sc">:,.0f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;DataFrame Shape: &quot;</span>, df_long_end.shape)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Num of unique accounts: 1,046,929
 DataFrame Shape:  (1046944, 94)</code></pre>
 </div>
 </div>
 <p>The next part pulls in the training and testing data from the website, merging in any information for each <code>account</code> (unique house ID).</p>
+<div id="4e4267e1" class="cell" data-execution_count="9">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df_long_end.copy()</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>train <span class="op">=</span> read_gh(URL,<span class="st">&quot;assessment_history_train.csv.gz&quot;</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>test <span class="op">=</span> read_gh(URL,<span class="st">&quot;assessment_history_test.csv.gz&quot;</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>train <span class="op">=</span> train.merge(df, on <span class="op">=</span> <span class="st">&#39;acct&#39;</span>, how <span class="op">=</span> <span class="st">&#39;left&#39;</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>test <span class="op">=</span> test.merge(df, on <span class="op">=</span> <span class="st">&#39;acct&#39;</span>, how <span class="op">=</span> <span class="st">&#39;left&#39;</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>object_cols <span class="op">=</span> train.select_dtypes(include<span class="op">=</span><span class="st">&#39;object&#39;</span>).columns.tolist()</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>object_cols.remove(<span class="st">&#39;acct&#39;</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>prots <span class="op">=</span> [<span class="st">&#39;protested_2015&#39;</span>,<span class="st">&#39;protested_2016&#39;</span>,<span class="st">&#39;protested_2017&#39;</span>,<span class="st">&#39;protested_2018&#39;</span>]</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>train[prots] <span class="op">=</span> train[prots].fillna(<span class="va">False</span>).astype(<span class="st">&#39;int8&#39;</span>)</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> c <span class="kw">in</span> prots:</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    object_cols.remove(c)</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> col <span class="kw">in</span> object_cols:</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    freq <span class="op">=</span> train[col].value_counts()</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    train[<span class="ss">f&#39;</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">_freq&#39;</span>] <span class="op">=</span> train[col].<span class="bu">map</span>(freq)</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>object_cols <span class="op">=</span> test.select_dtypes(include<span class="op">=</span><span class="st">&#39;object&#39;</span>).columns.tolist()</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>object_cols.remove(<span class="st">&#39;acct&#39;</span>)</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>test[prots] <span class="op">=</span> test[prots].fillna(<span class="va">False</span>).astype(<span class="st">&#39;int8&#39;</span>)</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> col <span class="kw">in</span> object_cols:</span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>    freq <span class="op">=</span> test[col].value_counts()</span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>    test[<span class="ss">f&#39;</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">_freq&#39;</span>] <span class="op">=</span> test[col].<span class="bu">map</span>(freq)</span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>train.drop(object_cols,axis<span class="op">=</span><span class="dv">1</span>,inplace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>test.drop(object_cols,axis<span class="op">=</span><span class="dv">1</span>,inplace<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
 </section>
 </section>
 <section id="data-overview" class="level1">
@@ -5004,7 +5510,8 @@ DataFrame Shape:  (1046944, 94)</code></pre>
 </ul>
 <p>This led to the dataset having the below-type features, with a <code>first_{feature}</code>, <code>end_{feature}</code> and <code>delta_{feature}</code>-type format. The first instance of a home was found, then the last, with the delta between the two being recorded.</p>
 <p>Below is a sample of <code>first_</code>, <code>end_</code> and <code>delta_</code> columns for <code>FLOOR_AREA_PRIMARY</code>.</p>
-<div id="efba32bc" class="cell" data-execution_count="10">
+<div id="98283d75" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>train[[<span class="st">&#39;first_floor_area_primary&#39;</span>,<span class="st">&#39;end_floor_area_primary&#39;</span>,<span class="st">&#39;delta_floor_area_primary&#39;</span>]].sample(<span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
 <div>
 
@@ -5020,27 +5527,27 @@ DataFrame Shape:  (1046944, 94)</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">55659</td>
-<td>1089.0</td>
-<td>1089.0</td>
+<td data-quarto-table-cell-role="th">45787</td>
+<td>1320.0</td>
+<td>1320.0</td>
 <td>0.0</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">260385</td>
-<td>744.0</td>
-<td>744.0</td>
+<td data-quarto-table-cell-role="th">309432</td>
+<td>2473.0</td>
+<td>2473.0</td>
 <td>0.0</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">299759</td>
-<td>1362.0</td>
-<td>1362.0</td>
+<td data-quarto-table-cell-role="th">114658</td>
+<td>1160.0</td>
+<td>1160.0</td>
 <td>0.0</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">581794</td>
-<td>643.0</td>
-<td>643.0</td>
+<td data-quarto-table-cell-role="th">299557</td>
+<td>817.0</td>
+<td>817.0</td>
 <td>0.0</td>
 </tr>
 </tbody>
@@ -5067,7 +5574,9 @@ DataFrame Shape:  (1046944, 94)</code></pre>
 <li><p>The various <code>grades</code> features were ordinally-encoded in slightly different variations. Usually a scale of <span class="math inline">\(worst\space quality = 0\)</span> and <span class="math inline">\(best\space quality = 6\space or\space 7\)</span>. These ranges were done on vibes and vibes alone, but were fairly consistent.</p></li>
 </ul>
 <p>Below is an example of a <code>dummy</code> foundation column for <code>Slab</code>.</p>
-<div id="b8fe308d" class="cell" data-execution_count="11">
+<div id="b93ea3ae" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># value Slab from the foundation column in the training data</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>train[<span class="st">&#39;foundation_Slab&#39;</span>].value_counts(normalize<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
 <pre><code>1.0    0.897983
 0.0    0.102017
@@ -5075,7 +5584,9 @@ Name: foundation_Slab, dtype: float64</code></pre>
 </div>
 </div>
 <p>Below is an example of an encoded cardinal column for home quality.</p>
-<div id="78f161f1" class="cell" data-execution_count="12">
+<div id="7bf9d3ed" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ordinal-encoded `end_quality` feature</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>train[<span class="st">&#39;end_quality&#39;</span>].value_counts(dropna<span class="op">=</span><span class="va">False</span>).sort_index()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="12">
 <pre><code>0.0         1
 1.0      2099
@@ -5092,7 +5603,8 @@ Name: end_quality, dtype: int64</code></pre>
 <section id="c.-null-values" class="level2">
 <h2 class="anchored" data-anchor-id="c.-null-values">4c. NULL Values</h2>
 <p>NULLs presented a large problem in the dataset. Of the <code>128</code> potential features, <code>114</code> had at least one record with a <code>NULL</code> value in <code>train</code> (~89%) with <code>117</code> having a <code>NULL</code> in <code>test</code> (~91%).</p>
-<div id="db6b7e34" class="cell" data-execution_count="13">
+<div id="444f964e" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>count_nulls(train,top_n<span class="op">=</span><span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Total number of columns with NULLs: 114
 
@@ -5110,7 +5622,7 @@ land_value_2016                         28,603        4.55%
 assessed_2016                           28,603        4.55%</code></pre>
 </div>
 </div>
-<p>Our approach was to use a <a href="https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingRegressor.html"><strong>Histogram-based Gradient Boosting Regression Tree</strong></a> from the <code>scikit-learn</code> library.</p>
+<p>The approach used is a <a href="https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingRegressor.html"><strong>Histogram-based Gradient Boosting Regression Tree</strong></a> from the <code>scikit-learn</code> library.</p>
 <p>This estimator works well with big datasets such as this one, and especially works well with <code>NULL</code> values.</p>
 <p>The idea is, for each column, a sample model of 100,000 records is built and predicts unique values on to that column, imputing the <code>NULL</code> values with an educated guess.</p>
 <p>Ultimately, it was the chosen approach of the three considered:</p>
@@ -5151,14 +5663,59 @@ assessed_2016                           28,603        4.55%</code></pre>
 </tbody>
 </table>
 <p>The below code finds all <code>NULLs</code> and uses <code>HistGradientBoostingRegressor</code> to impute them for the training and testing data respectively.</p>
-<div id="3731d74b" class="cell" data-execution_count="14">
+<div id="e0862541" class="cell" data-execution_count="14">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>missing_cols <span class="op">=</span> train.columns[train.isnull().<span class="bu">any</span>()]</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> col <span class="kw">in</span> missing_cols:</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    df_not_missing <span class="op">=</span> train[train[col].notnull()]</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    df_missing <span class="op">=</span> train[train[col].isnull()]</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    features <span class="op">=</span> [f <span class="cf">for</span> f <span class="kw">in</span> train.columns <span class="cf">if</span> f <span class="op">!=</span> col]</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    X_missing <span class="op">=</span> df_missing[features].select_dtypes(exclude<span class="op">=</span><span class="st">&#39;object&#39;</span>)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sample training data</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    df_sample <span class="op">=</span> df_not_missing.sample(n<span class="op">=</span><span class="dv">100000</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    X_train <span class="op">=</span> df_sample[features].select_dtypes(exclude<span class="op">=</span><span class="st">&#39;object&#39;</span>)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    y_train <span class="op">=</span> df_sample[col]</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    model <span class="op">=</span> HistGradientBoostingRegressor()</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    model.fit(X_train, y_train)</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    preds <span class="op">=</span> model.predict(X_missing)</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    train.loc[train[col].isnull(), col] <span class="op">=</span> preds</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Number of missing columns in the training data: </span><span class="sc">{</span><span class="bu">len</span>(missing_cols)<span class="sc">}</span><span class="ss">&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Number of missing columns in the training data: 114</code></pre>
 </div>
 </div>
-<div id="2067538e" class="cell" data-execution_count="15">
+<div id="0135d1d9" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>missing_cols <span class="op">=</span> test.columns[test.isnull().<span class="bu">any</span>()]</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> col <span class="kw">in</span> missing_cols:</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    df_not_missing <span class="op">=</span> test[test[col].notnull()]</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    df_missing <span class="op">=</span> test[test[col].isnull()]</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    features <span class="op">=</span> [f <span class="cf">for</span> f <span class="kw">in</span> test.columns <span class="cf">if</span> f <span class="op">!=</span> col]</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    X_missing <span class="op">=</span> df_missing[features].select_dtypes(exclude<span class="op">=</span><span class="st">&#39;object&#39;</span>)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sample training data</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    df_sample <span class="op">=</span> df_not_missing.sample(n<span class="op">=</span><span class="dv">100000</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    X_train <span class="op">=</span> df_sample[features].select_dtypes(exclude<span class="op">=</span><span class="st">&#39;object&#39;</span>)</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    y_train <span class="op">=</span> df_sample[col]</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    model <span class="op">=</span> HistGradientBoostingRegressor()</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    model.fit(X_train, y_train)</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>    preds <span class="op">=</span> model.predict(X_missing)</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>    test.loc[test[col].isnull(), col] <span class="op">=</span> preds</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Number of missing columns in the testing data: </span><span class="sc">{</span><span class="bu">len</span>(missing_cols)<span class="sc">}</span><span class="ss">&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Number of missing columns in the training data: 113</code></pre>
+<pre><code>Number of missing columns in the testing data: 113</code></pre>
 </div>
 </div>
 </section>
@@ -5178,26 +5735,43 @@ assessed_2016                           28,603        4.55%</code></pre>
 <p>Ridge CV had an issue initially of returning <span class="math inline">\(\hat y\)</span> as negative values, so its output had to be constrained. This could be an indicator of an underlying non-linear nature in the data.</p>
 <p>Next were two variations of <em>XGBoost Regressor</em>, the first with no hyperparameters and the second using <code>GridSearch</code> to find the best paramaters on the validation/holdout set.</p>
 <p>The <em>XGBoost Regressor</em> scored an astonishing 24,121 <em>Train RMSE</em>, while the <code>GridSearch</code> variation scored 40,701. The former of these would post a <em>Test RMSE</em> of 42,144 which would be our team’s best score in the competition.</p>
-<p>The <code>LightGBM</code> model gave some issues, discussed below:</p>
 <p>The performance of the <code>LightGBM</code> model on the validation set varied depending on the number of columns used during training. Since the test set was missing columns such as <code>land_value_2019</code>, <code>assessed_2019</code>, and <code>building_value_2019</code>, we evaluated the model’s performance both with and without these features. When these three columns were excluded, the average RMSE ranged between ~50K and 55K. However, including them improved the RMSE to between ~40K and 45K.</p>
 <p>For our final Kaggle submission, we chose to model these three columns separately, as the RMSE on the training set was significantly lower when they were included. Unfortunately, our Kaggle submission resulted in an RMSE of 174,621. Upon further investigation, we discovered that the order of columns in the test set differed slightly from that in the training set. This mismatch likely contributed to the large discrepancy between our validation and test performance.</p>
 <p>Finally, one <code>Ensemble</code> and three <code>Stack</code> models were trained.</p>
 <p>The <code>Ensemble</code> first used three models, <code>XGBRegressor</code>, <code>BayesianRidge</code> and <code>Ridge</code>. A simple linear estimator was trained using the weighted inference of each model, with the weights being proportional to the <em>Train RMSE</em> of the three models.</p>
-<p>The <code>Stack</code> models similar to the <code>Ensemble</code> had three training models with a final **meta-model* such as a <code>Ridge</code> regressor or <code>XGBRegressor</code> which would use <code>NumPy</code> to stack and ultimately predict using.</p>
+<p>The <code>Stack</code> models similar to the <code>Ensemble</code> had three training models with a final <strong>meta-model</strong> such as a <code>Ridge</code> regressor or <code>XGBRegressor</code> which would use <code>NumPy</code> to stack and ultimately predict using.</p>
 </section>
 <section id="b.-final-model-simple-xgboost-regressor" class="level2">
 <h2 class="anchored" data-anchor-id="b.-final-model-simple-xgboost-regressor">5b. Final Model: Simple XGBoost Regressor</h2>
-<div id="4171608f" class="cell" data-execution_count="16">
+<div id="59ec591a" class="cell" data-execution_count="16">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># removing some duplicate values</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>train <span class="op">=</span> train.drop_duplicates(subset<span class="op">=</span><span class="st">&#39;acct&#39;</span>)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> train.drop(columns<span class="op">=</span>[<span class="st">&#39;acct&#39;</span>,<span class="st">&#39;TARGET&#39;</span>])</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> train[<span class="st">&#39;TARGET&#39;</span>]</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>xgb <span class="op">=</span> XGBRegressor()</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>xgb.fit(X, y)</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>pred_xgb <span class="op">=</span> xgb.predict(X)</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>rmse_xgb <span class="op">=</span> np.sqrt(mean_squared_error(y, pred_xgb))</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;XGBoost RMSE: </span><span class="sc">{</span>rmse_xgb<span class="sc">:,.2f}</span><span class="ss">&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
-<pre><code>XGBoost RMSE: 15,414.44</code></pre>
+<pre><code>XGBoost RMSE: 13,749.91</code></pre>
 </div>
 </div>
+<p>The <em>RMSE</em> produced here is actually better than in the original training set, which is interesting. This shows the model is prone to a good amount of overfitting.</p>
 </section>
 <section id="c.-results-and-analysis" class="level2">
 <h2 class="anchored" data-anchor-id="c.-results-and-analysis">5c. Results and Analysis</h2>
 <p>It was a little surprising that the best model was a simple XGBoost Regressor, though best has a massive asterisk. The <em>Train RMSE</em> was nearly half the Submission’s <em>Test RMSE</em>, indicating a good amount of overfitting was occurring.</p>
 <p>Attempts at using <code>Ensemble</code> and <code>Stack</code> techniques didn’t seem to produce any better results than what we already saw.</p>
-<div id="f99b4f01" class="cell" data-execution_count="17">
+<div id="841522b2" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>model_scores()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -5229,18 +5803,18 @@ assessed_2016                           28,603        4.55%</code></pre>
 <ol start="3" type="1">
 <li>Try alternative forms of modeling</li>
 </ol>
-<p>We wanted to do <code>RandomForestRegression</code> among several other models, however time was a massive factor and these models took a very long time to run.</p>
+<p>Due to the time factor, models such as <code>RandomForestRegression</code> among several others, were not feasible to use.</p>
 <ol start="4" type="1">
 <li>Use a hyperparameter tuner such as <code>optuna</code></li>
 </ol>
-<p>While we only first heard of it during the in-class presentations, this library seems like a much better version of <code>GridSearch</code></p>
+<p>While I only first heard of it during the in-class presentations, this library seems like a much better version of <code>GridSearch</code>.</p>
 <ol start="5" type="1">
 <li>Model on <code>Colab</code> or in <code>R</code></li>
 </ol>
 <p>In <code>Colab</code>, we can use the <em>GPU</em> to assist in modeling, which can’t be done in <code>Jupyter</code>.</p>
 <p>Modeling in <code>R</code> might have been an alternative approach, as their statistical libraries seem to be more flushed out than <code>Python</code>. Though, for this site, I’ve converted the code from Python to R.</p>
 <ol start="6" type="1">
-<li>Figure out what caused the greatest reduciton in <em>RMSE</em></li>
+<li>Figure out what caused the greatest reduction in <em>RMSE</em></li>
 </ol>
 <p>What part of the preprocessing step(s) really helped the model and which did nothing?</p>
 </section>
@@ -5248,8 +5822,8 @@ assessed_2016                           28,603        4.55%</code></pre>
 <h1>7. Conclusion</h1>
 <p>For the amount of time allotted to complete this project, this was a fairly reasonable result.</p>
 <p>It was an interesting project going up against the rest of the class like this and finishing middle-of-the-pack (though a lot closer to the top than the bottom). The positive results that came about after a lot of preprocessing showed that this project was on the right track.</p>
-<p>It was interesting and a bit surprising that linear models still demonstrated strong predictive capabilities and, in some cases, even outperformed more complex algorithms such as LGBM and XGBoost. Additionally, it was valuable to gain hands-on experience with different models by tuning their parameters and evaluating their performance.</p>
-<p>After listening to our peers present at the last class, there are a lot of options that could be use if we were to pick up this project again, to make a truly great model.</p>
+<p>It was also interesting and a bit surprising that linear models still demonstrated strong predictive capabilities and, in some cases, even outperformed more complex algorithms such as LGBM and XGBoost. Additionally, it was valuable to gain hands-on experience with different models by tuning their parameters and evaluating their performance.</p>
+<p>After listening to my peers present at the last class, there are a lot of options that could be use if I were to pick up this project again to make a truly great model.</p>
 
 
 </section>
