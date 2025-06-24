@@ -1,9 +1,10 @@
 ---
-title: "Prediction Competition"
+title: "About"
 format: html
 jyml:
 ---
-Landing Page for Prediction Competition
+
+My name is Seth, I am a student at Zicklin, Baruch's Business School. I am currently on track to receive my Master's in Statistics with a focus in Data Science at the end of the Fall 2025 semester.
 
 ```{r}
 #| echo: false
@@ -11,9 +12,9 @@ Landing Page for Prediction Competition
 #| warning: false
 
 if(!require("leaflet")){
-    options(repos=c(CRAN="https://cloud.r-project.org"))
-    install.packages("leaflet")
-    stopifnot(require("leaflet"))
+  options(repos=c(CRAN="https://cloud.r-project.org"))
+  install.packages("leaflet")
+  stopifnot(require("leaflet"))
 }
 
 baruch_longitude <- -73.98333
@@ -26,9 +27,11 @@ leaflet() |>
             "I am a Master's student at <b>Baruch College</b>!")
 ```
 
+This is a page created for my STA 9890 class which contains two research reports on Machine Learning and my final prediction competition project for the class, where I finished 15th place out of 31 other students.
+
 ```{r}
 #| include: false
 1+1
 ```
 --------------
-Last Updated: `r format(Sys.time(), "%A %m %d, %Y at %H:%M%p")`
+  Last Updated: `r format(Sys.time(), "%A %m %d, %Y at %H:%M%p")`

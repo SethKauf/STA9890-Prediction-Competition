@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 def binary_labeler(data, data_cols, one_var, zero_var, suffix='_bin'):
     df = data.copy()
@@ -117,7 +118,7 @@ def read_gh(URL, f):
 def clean_building_dfs(df):
     tfcols = ['elevator','has_cooling','has_heat']
     for col in tfcols:
-        df[col] = df[col].astype('Int64')
+        df[col] = df[col].fillna(0).astype(int)
 
     quality_map = {
     'F':0,
@@ -222,3 +223,44 @@ def clean_building_dfs(df):
     df = df.drop(['exterior_walls','foundation_type'],axis=1)
 
     return df
+
+def create_test_preds(test:pd.DataFrame,model) -> pd.DataFrame:
+    
+    """
+    Takes in the test dataframe and returns a prediction file
+    """
+    
+    # ensure test is unique
+    test = test.drop_duplicates(subset='acct')
+    
+    # create X_test
+    X_test = test.drop(columns=['acct'])
+    
+    # get unique account ids
+    acct_ids = test['acct']
+    
+    # get preds
+    y_pred = model.predict(X_test)
+    
+    # create output dataframe
+    output_df = pd.DataFrame({
+        'acct':acct_ids,
+        'TARGET':y_pred
+    })
+    
+    # rename acct
+    output_df.rename({'acct':'ACCOUNT'},axis=1,inplace=True)
+    
+    # reset index
+    output_df.reset_index(inplace=True)
+    
+    return output_df
+
+def get_high_correlations(df, threshold=0.8):
+    corr = df.corr().abs()
+    upper = np.triu(np.ones(corr.shape), k=1).astype(bool)
+    high_corr = [(df.columns[i], df.columns[j], corr.iloc[i, j])
+                 for i in range(len(corr.columns)) 
+                 for j in range(len(corr.columns)) 
+                 if upper[i, j] and corr.iloc[i, j] > threshold]
+    return sorted(high_corr, key=lambda x: -x[2])

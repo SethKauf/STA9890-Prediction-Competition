@@ -10,8 +10,10 @@ website:
     background: primary
     search: false
     left:
-      - text: "9890 Final Project"
+      - text: "Home"
         href: index.qmd
+      - text: "9890 Final Project"
+        href: Final_Project.qmd
     right:
       - text: "Research Reports"
         menu: 
