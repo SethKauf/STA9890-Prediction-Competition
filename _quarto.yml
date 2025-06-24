@@ -18,7 +18,7 @@ website:
       - text: "Research Reports"
         menu: 
           - text: "Bias and Variance Tradeoff and BLUE (Report 1)"
-            href: Research_Report_1.qmd
+            href: Research_Report_1.html
           - text: "Ensemble Learning Techniques for Fair Classification (Report 2)"
             href: Research_Report_2.qmd
 format:
